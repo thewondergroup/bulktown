@@ -26,6 +26,7 @@
     <a class="logo" href="#top">BULK<span>TOWN</span></a>
     <div class="nav-links">
       <a href="#menu">Menu</a>
+      <a href="#plan">Meal plan</a>
       <a href="#how">How it works</a>
       <a href="#visit">Visit</a>
       <a class="btn btn--accent btn--small" href="#order">Order now</a>
@@ -178,8 +179,73 @@
         </div>
 
         <div id="tray-body"></div>
+        <a class="tray-plan-link" href="#plan">Want the whole week? Get a free meal plan</a>
       </aside>
     </div>
+  </div>
+</section>
+
+<section class="plan" id="plan">
+  <div class="wrap plan-inner">
+    <div class="plan-copy">
+      <div class="section-head">
+        <p class="eyebrow">FREE MEAL PLAN</p>
+        <h2>YOUR WEEK,<br>PLANNED.</h2>
+      </div>
+      <p class="plan-lede">Tell us your goal and we'll build you a five-day Bulktown plan, with the calories and protein added up for every day. It's free. All we ask for is your email.</p>
+
+      <form class="plan-form" id="plan-form" novalidate>
+        <fieldset class="field">
+          <legend>Your goal</legend>
+          <div class="seg">
+            <input type="radio" name="plan-goal" id="plan-goal-bulk" value="bulk" checked>
+            <label for="plan-goal-bulk" class="seg--bulk">Bulking</label>
+            <input type="radio" name="plan-goal" id="plan-goal-cut" value="cut">
+            <label for="plan-goal-cut" class="seg--cut">Cutting</label>
+          </div>
+        </fieldset>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="plan-meals">Bulktown meals a day</label>
+            <select id="plan-meals">
+              <option value="1">1 meal</option>
+              <option value="2" selected>2 meals</option>
+              <option value="3">3 meals</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="plan-target">Daily protein target</label>
+            <div class="input-unit">
+              <input type="number" id="plan-target" min="60" max="300" step="10" value="150" inputmode="numeric">
+              <span aria-hidden="true">g</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="plan-email">Email</label>
+          <input type="email" id="plan-email" autocomplete="email" placeholder="name@example.com" aria-describedby="plan-email-error" required>
+          <p class="field-error" id="plan-email-error" role="alert"></p>
+        </div>
+
+        <label class="check" for="plan-optin">
+          <input type="checkbox" id="plan-optin">
+          <span>Email me Bulktown news and offers too. You can unsubscribe at any time.</span>
+        </label>
+
+        <div class="hp" aria-hidden="true">
+          <label for="plan-company">Company</label>
+          <input type="text" id="plan-company" tabindex="-1" autocomplete="off">
+        </div>
+
+        <button class="btn btn--ink" type="submit" id="plan-submit">Build my plan</button>
+        <!-- TODO: link the privacy policy -->
+        <p class="plan-small">Your plan appears on this page as soon as you sign up. <a href="#">Privacy policy</a></p>
+      </form>
+    </div>
+
+    <div class="plan-output" id="plan-output"></div>
   </div>
 </section>
 
@@ -223,6 +289,7 @@
   </div>
 </footer>
 
+<script src="config.js"></script>
 <script src="menu.js"></script>
 <script src="app.js"></script>
 </body>

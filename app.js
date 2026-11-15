@@ -193,10 +193,166 @@
         '</div>';
   }
 
+  /* ---------- Meal plan ---------- */
+
+  var DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  var LOCK = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  var plan = { unlocked: false, goalTouched: false, targetTouched: false };
+
+  function planInputs() {
+    var cut = $('plan-goal-cut');
+    var target = Number($('plan-target').value);
+    if (!(target >= 60)) target = 60;
+    if (target > 300) target = 300;
+    return {
+      goal: cut && cut.checked ? 'cut' : 'bulk',
+      meals: Math.max(1, Math.min(3, Number($('plan-meals').value) || 2)),
+      target: target
+    };
+  }
+
+  // Five days from the dishes that match the goal. Each day rotates through the
+  // dishes, then switches on protein add-ons (biggest first) until the target is met.
+  function buildPlan(goal, meals, target) {
+    var pool = MENU.filter(function (d) { return d.goal === goal; });
+    if (!pool.length) return [];
+    return DAYS.map(function (day, i) {
+      var picks = [];
+      for (var k = 0; k < meals; k++) picks.push({ dish: pool[(i + k) % pool.length], on: false });
+      var protein = picks.reduce(function (sum, x) { return sum + x.dish.p; }, 0);
+      picks.filter(function (x) { return ADDONS[x.dish.addon]; })
+        .sort(function (a, b) { return ADDONS[b.dish.addon].p - ADDONS[a.dish.addon].p; })
+        .forEach(function (x) {
+          if (protein >= target) return;
+          x.on = true;
+          protein += ADDONS[x.dish.addon].p;
+        });
+      var kcal = 0;
+      var rows = picks.map(function (x) {
+        var extra = x.on ? ADDONS[x.dish.addon] : null;
+        var k2 = x.dish.kcal + (extra ? extra.kcal : 0);
+        var p2 = x.dish.p + (extra ? extra.p : 0);
+        kcal += k2;
+        return { name: x.dish.name + (extra ? ' + ' + extra.short : ''), kcal: k2, p: p2 };
+      });
+      return { day: day, rows: rows, kcal: kcal, p: protein, gap: Math.max(0, target - protein) };
+    });
+  }
+
+  function renderPlan() {
+    var out = $('plan-output');
+    if (!out) return;
+    var input = planInputs();
+    var days = buildPlan(input.goal, input.meals, input.target);
+
+    var cards = days.map(function (d, i) {
+      if (!plan.unlocked && i > 0) {
+        return '<div class="day day--locked"><h4>' + d.day.toUpperCase() + '</h4><p>' + LOCK + 'Unlocks with your email</p></div>';
+      }
+      return '<div class="day"><h4>' + d.day.toUpperCase() + '</h4>' +
+        '<ul class="day-meals">' + d.rows.map(function (r) {
+          return '<li><span class="day-meal-name">' + esc(r.name) + '</span><span class="day-meal-line">' + r.kcal + ' kcal · ' + r.p + 'g protein</span></li>';
+        }).join('') + '</ul>' +
+        '<div class="day-total"><span>' + d.kcal + ' kcal</span><span>' + d.p + 'g protein</span></div>' +
+        '<p class="day-note">' + (d.gap > 0 ? d.gap + 'g of protein left to get from your other meals.' : 'Protein target met.') + '</p>' +
+        '</div>';
+    }).join('');
+
+    var goalWord = input.goal === 'bulk' ? 'bulking' : 'cutting';
+    var summary = 'Five days of ' + goalWord + ', ' + input.meals + (input.meals === 1 ? ' meal' : ' meals') + ' a day, aiming for ' + input.target + 'g protein.';
+    out.innerHTML =
+      '<div class="plan-output-head"><div>' +
+        '<h3 id="plan-heading" tabindex="-1">' + (plan.unlocked ? 'YOUR BULKTOWN WEEK' : 'A TASTE OF YOUR PLAN') + '</h3>' +
+        '<p>' + (plan.unlocked ? summary : 'Monday is on us. Enter your email for the full week.') + '</p></div>' +
+        (plan.unlocked ? '<button type="button" class="plan-print" data-print>Print or save as PDF</button>' : '') +
+      '</div>' +
+      '<div class="plan-days">' + cards + '</div>' +
+      (plan.unlocked ? '<p class="plan-foot">This covers your Bulktown meals, not everything you eat in a day. How much you need depends on your size and training.</p>' : '');
+  }
+
+  // Until the visitor edits the plan form, it follows the goal and target they picked above.
+  function syncPlanForm() {
+    if (!$('plan-form')) return;
+    if (!plan.goalTouched && state.goal !== 'all') {
+      $('plan-goal-bulk').checked = state.goal === 'bulk';
+      $('plan-goal-cut').checked = state.goal === 'cut';
+    }
+    if (!plan.targetTouched) $('plan-target').value = state.target;
+  }
+
+  function sendSignup(payload) {
+    var key = window.BULKTOWN_FORM_KEY;
+    if (!key) {
+      if (window.console) console.warn('Bulktown: no form key set in config.js, so this sign-up was not saved.');
+      return Promise.resolve();
+    }
+    payload.access_key = key;
+    payload.subject = 'New Bulktown meal plan sign-up';
+    payload.from_name = 'Bulktown website';
+    return fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function () {}, function () {});
+  }
+
+  var planForm = $('plan-form');
+  if (planForm) {
+    planForm.addEventListener('change', function (event) {
+      if (event.target.name === 'plan-goal') plan.goalTouched = true;
+      if (event.target.id === 'plan-target') plan.targetTouched = true;
+      renderPlan();
+    });
+    $('plan-email').addEventListener('input', function () {
+      $('plan-email').removeAttribute('aria-invalid');
+      $('plan-email-error').textContent = '';
+    });
+    planForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      var email = $('plan-email');
+      var value = email.value.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        email.setAttribute('aria-invalid', 'true');
+        $('plan-email-error').textContent = value ? 'That email doesn\'t look right. Check it and try again.' : 'Enter your email to get your plan.';
+        email.focus();
+        return;
+      }
+      var unlock = function () {
+        plan.unlocked = true;
+        button.disabled = false;
+        button.textContent = 'Update my plan';
+        renderPlan();
+        var heading = $('plan-heading');
+        if (heading) heading.focus();
+      };
+      var button = $('plan-submit');
+      if ($('plan-company').value) { unlock(); return; } // filled only by bots
+      var input = planInputs();
+      // The same email submitting again only refreshes the plan, it isn't sent twice.
+      if (plan.sentFor === value) { unlock(); return; }
+      plan.sentFor = value;
+      button.disabled = true;
+      button.textContent = 'Building your plan…';
+      sendSignup({
+        email: value,
+        goal: input.goal,
+        meals_per_day: input.meals,
+        protein_target: input.target + 'g',
+        marketing_opt_in: $('plan-optin').checked ? 'Yes' : 'No'
+      }).then(unlock);
+    });
+  }
+
+  document.addEventListener('click', function (event) {
+    if (event.target.closest && event.target.closest('[data-print]')) window.print();
+  });
+
   function render(focusKey) {
     renderGoal();
     renderMenu();
     renderTray();
+    syncPlanForm();
+    renderPlan();
     save();
     // Re-drawing replaces the button that was just pressed, so put focus back on its replacement.
     if (focusKey) {
