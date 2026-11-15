@@ -97,7 +97,7 @@
       '<div class="label-row label-row--strong"><span>Protein</span><span>' + dish.p + 'g</span></div>' +
       '<div class="label-row"><span>Carbs</span><span>' + dish.c + 'g</span></div>' +
       '<div class="label-row"><span>Fat</span><span>' + dish.f + 'g</span></div>' +
-      '<p class="label-note">Per serving. Every dish on the menu gets a label like this.</p>';
+      '<p class="label-note">Per serving. Every meal on the menu gets a label like this.</p>';
   }
 
   /* ---------- Menu ---------- */
@@ -107,8 +107,8 @@
     var shown = MENU.filter(function (d) { return goal === 'all' || d.goal === goal; });
 
     $('menu-summary').textContent = goal === 'all'
-      ? 'Showing all ' + shown.length + ' dishes.'
-      : 'Showing ' + shown.length + ' ' + (goal === 'bulk' ? 'bulking' : 'cutting') + ' dishes.';
+      ? 'Showing all ' + shown.length + ' meals.'
+      : 'Showing ' + shown.length + ' ' + (goal === 'bulk' ? 'bulking' : 'cutting') + ' meals.';
 
     $('menu-grid').innerHTML = shown.map(function (d) {
       var m = macros(d);
@@ -173,13 +173,13 @@
     $('progress').setAttribute('aria-label', total.p + ' of ' + target + ' grams of protein');
     $('progress-fill').style.width = pct + '%';
     $('progress-line').textContent = !rows.length
-      ? 'Add dishes to start counting.'
+      ? 'Add meals to start counting.'
       : total.p >= target
         ? 'Target hit. ' + total.p + 'g protein today.'
         : (target - total.p) + 'g protein to go.';
 
     $('tray-body').innerHTML = !rows.length
-      ? '<p class="tray-empty">Nothing here yet. Tap "Add to my day" on any dish and your calories and protein add up here.</p>'
+      ? '<p class="tray-empty">Nothing here yet. Tap "Add to my day" on any meal and your calories and protein add up here.</p>'
       : '<ul class="tray-list">' + rows.join('') + '</ul>' +
         '<dl class="tray-totals">' +
           '<div class="big"><dt>Calories</dt><dd>' + total.kcal + '</dd></div>' +

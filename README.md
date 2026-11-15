@@ -1,6 +1,6 @@
 # Bulktown
 
-Website for Bulktown, a high-protein restaurant where every dish shows its macros and is tagged for bulking or cutting.
+Website for Bulktown, a high-street, high-protein kitchen (eat in or take away) serving set meals. Every meal shows its macros and is tagged for bulking or cutting.
 
 It is a plain static site: HTML, CSS and JavaScript with no build step. Open `index.html` in a browser, or serve the folder with GitHub Pages.
 
