@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bulktown | Eat for the goal</title>
+<meta name="description" content="Bulktown is a high-protein kitchen. Every dish shows its protein, carbs, fat and calories, and tells you straight if it's for bulking or cutting.">
+<!-- Remove this line when the site is ready to launch -->
+<meta name="robots" content="noindex">
+<meta property="og:title" content="Bulktown | Eat for the goal">
+<meta property="og:description" content="Macros on every plate. Bulk or cut. No guesswork.">
+<meta property="og:image" content="images/athletes.jpg">
+<meta name="theme-color" content="#0F0F0F">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-goal="all">
+
+<a class="skip" href="#menu">Skip to the menu</a>
+
+<header class="site-header">
+  <nav class="nav wrap" aria-label="Main">
+    <a class="logo" href="#top">BULK<span>TOWN</span></a>
+    <div class="nav-links">
+      <a href="#menu">Menu</a>
+      <a href="#how">How it works</a>
+      <a href="#visit">Visit</a>
+      <a class="btn btn--accent btn--small" href="#order">Order now</a>
+    </div>
+  </nav>
+</header>
+
+<main>
+
+<section class="hero" id="top">
+  <!-- Background video. Add video/hero.mp4 (muted, 10-20s loop, under 15MB) and it plays here.
+       Until then the poster photo shows. -->
+  <video class="hero-media" autoplay muted loop playsinline poster="images/athletes.jpg" aria-hidden="true" tabindex="-1">
+    <source src="video/hero.mp4" type="video/mp4">
+  </video>
+  <div class="hero-tint" aria-hidden="true"></div>
+
+  <div class="hero-inner wrap">
+    <div class="hero-copy">
+      <p class="eyebrow eyebrow--light">HIGH-PROTEIN KITCHEN · MACROS ON EVERY PLATE</p>
+      <h1>EAT FOR<br>THE GOAL.</h1>
+      <p class="hero-lede">Every dish shows its protein, carbs, fat and calories, and tells you straight: is it for <strong class="word-bulk">bulking</strong> or <strong class="word-cut">cutting</strong>. No maths. No guesswork. Just eat.</p>
+
+      <div class="goal-picker">
+        <p class="eyebrow eyebrow--white">WHAT'S YOUR GOAL?</p>
+        <div class="goal-buttons" role="group" aria-label="Choose your goal">
+          <button type="button" class="goal-btn goal-btn--bulk" data-goal="bulk" aria-pressed="false">
+            <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>I'M BULKING
+          </button>
+          <button type="button" class="goal-btn goal-btn--cut" data-goal="cut" aria-pressed="false">
+            <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>I'M CUTTING
+          </button>
+        </div>
+        <p class="goal-line" id="goal-line" aria-live="polite">Tap one and the whole menu shapes itself around you.</p>
+      </div>
+
+      <div class="hero-actions">
+        <a class="btn btn--white" href="#menu" id="menu-cta">See the full menu</a>
+        <a class="btn btn--outline" href="#how">How it works</a>
+      </div>
+    </div>
+
+    <div class="hero-label-wrap">
+      <div class="label-card" id="hero-label" role="img" aria-label="Example Bulktown label"></div>
+    </div>
+  </div>
+</section>
+
+<div class="band" aria-hidden="true">
+  <p>HIGH PROTEIN · MACROS ON EVERY PLATE · BULK OR CUT · NO GUESSWORK · HIGH PROTEIN · MACROS ON EVERY PLATE</p>
+</div>
+
+<section class="how wrap" id="how">
+  <div class="how-copy">
+    <div class="section-head">
+      <p class="eyebrow">HOW IT WORKS</p>
+      <h2>HEALTHY EATING,<br>MADE STUPIDLY SIMPLE.</h2>
+    </div>
+    <ol class="steps">
+      <li>
+        <span class="step-num" aria-hidden="true">01</span>
+        <h3>Pick your goal</h3>
+        <p>Building muscle? You're bulking. Getting lean? You're cutting. That's the only decision you need to make.</p>
+      </li>
+      <li>
+        <span class="step-num" aria-hidden="true">02</span>
+        <h3>Follow the tag</h3>
+        <p>Every dish is tagged BULK or CUT, with the full macros right on the menu. Filter by your goal and order.</p>
+      </li>
+      <li>
+        <span class="step-num" aria-hidden="true">03</span>
+        <h3>Eat. Train. Repeat.</h3>
+        <p>Build your day on the menu and watch your protein add up. The numbers are already done for you.</p>
+      </li>
+    </ol>
+  </div>
+  <div class="how-photo">
+    <img src="images/bowl-lifestyle.jpg" alt="Someone in gym kit eating a quinoa, broccoli and mozzarella bowl" width="1800" height="1200" loading="lazy">
+  </div>
+</section>
+
+<section class="goals wrap" aria-label="Bulking and cutting explained">
+  <div class="goal-panel goal-panel--bulk">
+    <div class="goal-panel-title">
+      <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      <h2>BULK</h2>
+    </div>
+    <p class="goal-panel-lede">For building muscle and size.</p>
+    <p>Bigger plates, more carbs to fuel training, and plenty of protein. These dishes help you eat in a calorie surplus without filling up on junk.</p>
+    <ul class="pills">
+      <li>Higher calories</li>
+      <li>High protein</li>
+      <li>More carbs</li>
+    </ul>
+  </div>
+  <div class="goal-panel goal-panel--cut">
+    <div class="goal-panel-title">
+      <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+      <h2>CUT</h2>
+    </div>
+    <p class="goal-panel-lede">For getting lean and defined.</p>
+    <p>Lighter plates that still keep protein high to protect your muscle. Fewer calories, less fat and fewer carbs, while still filling you up.</p>
+    <ul class="pills">
+      <li>Lower calories</li>
+      <li>High protein</li>
+      <li>Lean and light</li>
+    </ul>
+  </div>
+</section>
+
+<section class="menu" id="menu">
+  <div class="wrap menu-inner">
+    <div class="menu-head">
+      <div class="section-head">
+        <p class="eyebrow">THE MENU</p>
+        <h2>WHAT ARE YOU<br>TRAINING FOR?</h2>
+      </div>
+      <div class="tabs" role="group" aria-label="Filter dishes by goal">
+        <button type="button" class="tab" data-filter="all" aria-pressed="true">All dishes</button>
+        <button type="button" class="tab tab--bulk" data-filter="bulk" aria-pressed="false">Bulking</button>
+        <button type="button" class="tab tab--cut" data-filter="cut" aria-pressed="false">Cutting</button>
+      </div>
+    </div>
+    <p class="menu-summary"><span id="menu-summary" aria-live="polite">Showing all dishes.</span> Macros are per serving and update when you add extra protein.</p>
+
+    <div class="menu-layout">
+      <div class="menu-grid" id="menu-grid">
+        <noscript><p>Turn on JavaScript to see the menu and build your day.</p></noscript>
+      </div>
+
+      <aside class="tray" aria-label="Your day">
+        <div>
+          <p class="eyebrow eyebrow--light">BUILD YOUR DAY</p>
+          <h3 class="tray-title">YOUR DAY</h3>
+        </div>
+
+        <div class="tray-target">
+          <div class="tray-target-row">
+            <span>Protein target</span>
+            <div class="stepper">
+              <button type="button" class="round-btn round-btn--strong" data-target="-10" aria-label="Lower protein target by 10 grams">−</button>
+              <span class="stepper-value" id="target-value">150g</span>
+              <button type="button" class="round-btn round-btn--strong" data-target="10" aria-label="Raise protein target by 10 grams">+</button>
+            </div>
+          </div>
+          <div class="progress" id="progress" role="img" aria-label="0 of 150 grams of protein">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <p class="progress-line" id="progress-line" aria-live="polite">Add dishes to start counting.</p>
+        </div>
+
+        <div id="tray-body"></div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<section class="visit" id="visit">
+  <div class="wrap visit-inner">
+    <div class="visit-copy">
+      <h2>COME HUNGRY.<br><span class="track">LEAVE ON TRACK.</span></h2>
+      <div class="hero-actions" id="order">
+        <!-- TODO: point these at the ordering system -->
+        <a class="btn btn--accent" href="#">Order for collection</a>
+        <a class="btn btn--outline" href="#">Order delivery</a>
+      </div>
+    </div>
+    <div class="visit-photo">
+      <img src="images/gym.jpg" alt="Woman in grey training kit by a mirror in a gym" width="1800" height="1350" loading="lazy">
+    </div>
+    <div class="visit-details">
+      <div>
+        <p class="eyebrow eyebrow--light">FIND US</p>
+        <p>[ADDRESS LINE 1]<br>[ADDRESS LINE 2]<br>[POSTCODE]</p>
+        <a href="#">Get directions</a>
+      </div>
+      <div>
+        <p class="eyebrow eyebrow--light">OPEN</p>
+        <p>Mon–Fri [HOURS]<br>Sat–Sun [HOURS]</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <span class="logo logo--small">BULK<span>TOWN</span></span>
+    <div class="footer-links">
+      <a href="#">Instagram</a>
+      <a href="#">Allergens</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script src="menu.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
