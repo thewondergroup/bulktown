@@ -1,23 +1,21 @@
-/* Bulktown — goal picker, menu and "Your day" tracker. Menu data lives in menu.js. */
+/* Bulktown — goal picker, menu and the step-by-step meal plan. Menu data lives in menu.js. */
 (function () {
   'use strict';
 
   var MENU = window.BULKTOWN_MENU || [];
   var ADDONS = window.BULKTOWN_ADDONS || {};
   var HERO_DISH = window.BULKTOWN_HERO_DISH || {};
-  var STORE_KEY = 'bulktown-day';
+  var STORE_KEY = 'bulktown-site';
 
-  var state = { goal: 'all', tray: {}, addons: {}, target: 150 };
+  var state = { goal: 'all', addons: {} };
 
-  // Remember the visitor's goal and day between visits. Storage can be
-  // unavailable (private mode, blocked cookies), so every use is guarded.
+  // Remember the visitor's goal between visits. Storage can be unavailable
+  // (private mode, blocked cookies), so every use is guarded.
   try {
     var saved = JSON.parse(window.localStorage.getItem(STORE_KEY) || 'null');
     if (saved && typeof saved === 'object') {
       if (saved.goal === 'bulk' || saved.goal === 'cut') state.goal = saved.goal;
-      if (saved.tray && typeof saved.tray === 'object') state.tray = saved.tray;
       if (saved.addons && typeof saved.addons === 'object') state.addons = saved.addons;
-      if (Number(saved.target) >= 60 && Number(saved.target) <= 300) state.target = Number(saved.target);
     }
   } catch (e) { /* start fresh */ }
 
@@ -38,7 +36,7 @@
     return null;
   }
 
-  // A dish's numbers, including its protein add-on when switched on.
+  // A meal's numbers, including its protein add-on when switched on.
   function macros(dish) {
     var extra = ADDONS[dish.addon];
     var on = !!(extra && state.addons[dish.id]);
@@ -52,14 +50,17 @@
     };
   }
 
-  var ARROW_UP = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
-  var ARROW_DOWN = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>';
+  function arrow(direction, size, weight) {
+    var path = direction === 'up' ? 'M12 19V5M5 12l7-7 7 7' : 'M12 5v14M19 12l-7 7-7-7';
+    return '<svg aria-hidden="true" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + weight +
+      '" stroke-linecap="round" stroke-linejoin="round"><path d="' + path + '"/></svg>';
+  }
 
   function tag(goal, extraClass) {
     var cls = 'tag tag--' + goal + (extraClass ? ' ' + extraClass : '');
     return goal === 'bulk'
-      ? '<span class="' + cls + '">' + ARROW_UP + 'BULK</span>'
-      : '<span class="' + cls + '">' + ARROW_DOWN + 'CUT</span>';
+      ? '<span class="' + cls + '">' + arrow('up', 14, 3.5) + 'BULK</span>'
+      : '<span class="' + cls + '">' + arrow('down', 14, 3.5) + 'CUT</span>';
   }
 
   /* ---------- Top section ---------- */
@@ -112,7 +113,6 @@
 
     $('menu-grid').innerHTML = shown.map(function (d) {
       var m = macros(d);
-      var qty = state.tray[d.id] || 0;
       var pk = m.p * 4, ck = m.c * 4, fk = m.f * 9, total = pk + ck + fk || 1;
       var pPct = Math.round((pk / total) * 100);
       var cPct = Math.round((ck / total) * 100);
@@ -139,65 +139,17 @@
             '<div class="f"><dt>Fat</dt><dd>' + m.f + 'g</dd></div>' +
           '</dl>' +
           addon +
-          '<button type="button" class="add-btn" data-add="' + id + '" data-key="add-' + id + '">' +
-            (qty > 0 ? 'Add another (' + qty + ' in my day)' : 'Add to my day') + '</button>' +
         '</div></article>';
     }).join('');
   }
 
-  /* ---------- Your day ---------- */
-
-  function renderTray() {
-    var total = { kcal: 0, p: 0, c: 0, f: 0 };
-    var rows = [];
-
-    MENU.forEach(function (d) {
-      var qty = state.tray[d.id] || 0;
-      if (qty <= 0) return;
-      var m = macros(d);
-      total.kcal += m.kcal * qty; total.p += m.p * qty; total.c += m.c * qty; total.f += m.f * qty;
-      var id = esc(d.id);
-      rows.push('<li>' +
-        '<div><span class="tray-item-name">' + esc(d.name + (m.on ? ' + ' + m.extra.short : '')) + '</span>' +
-        '<span class="tray-item-line">' + (m.kcal * qty) + ' kcal · ' + (m.p * qty) + 'g protein</span></div>' +
-        '<div class="tray-qty">' +
-          '<button type="button" class="round-btn" data-qty="' + id + '" data-delta="-1" data-key="less-' + id + '" aria-label="Remove one ' + esc(d.name) + '">−</button>' +
-          '<span>' + qty + '</span>' +
-          '<button type="button" class="round-btn" data-qty="' + id + '" data-delta="1" data-key="more-' + id + '" aria-label="Add one more ' + esc(d.name) + '">+</button>' +
-        '</div></li>');
-    });
-
-    var target = state.target;
-    var pct = Math.min(100, Math.round((total.p / target) * 100));
-    $('target-value').textContent = target + 'g';
-    $('progress').setAttribute('aria-label', total.p + ' of ' + target + ' grams of protein');
-    $('progress-fill').style.width = pct + '%';
-    $('progress-line').textContent = !rows.length
-      ? 'Add meals to start counting.'
-      : total.p >= target
-        ? 'Target hit. ' + total.p + 'g protein today.'
-        : (target - total.p) + 'g protein to go.';
-
-    $('tray-body').innerHTML = !rows.length
-      ? '<p class="tray-empty">Nothing here yet. Tap "Add to my day" on any meal and your calories and protein add up here.</p>'
-      : '<ul class="tray-list">' + rows.join('') + '</ul>' +
-        '<dl class="tray-totals">' +
-          '<div class="big"><dt>Calories</dt><dd>' + total.kcal + '</dd></div>' +
-          '<div class="big protein"><dt>Protein</dt><dd>' + total.p + 'g</dd></div>' +
-          '<div><dt>Carbs</dt><dd>' + total.c + 'g</dd></div>' +
-          '<div><dt>Fat</dt><dd>' + total.f + 'g</dd></div>' +
-        '</dl>' +
-        '<div class="tray-actions">' +
-          '<a class="btn btn--accent" href="#order">Order my day</a>' +
-          '<button type="button" class="link-btn" data-clear data-key="clear">Clear and start again</button>' +
-        '</div>';
-  }
-
-  /* ---------- Meal plan ---------- */
+  /* ---------- Meal plan: three questions, then the answer ---------- */
 
   var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var LOCK = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-  var plan = { unlocked: false, goalTouched: false, sentFor: '' };
+
+  // step 1 = goal, 2 = workouts a week, 3 = today's session, 4 = the answer
+  var plan = { step: 1, goal: '', workouts: 0, today: '', unlocked: false, sentFor: '' };
 
   // Which of the next seven days are training days (T) or rest days (R),
   // starting today, for 1 to 7 workouts a week.
@@ -205,28 +157,22 @@
 
   // What each kind of day asks for. `score` ranks the meals for that day (highest wins).
   var SESSIONS = {
-    legs: { label: 'Legs day', score: function (d) { return d.c; }, why: 'Legs is the biggest session going, so refuel with carbs.' },
-    full: { label: 'Full-body day', score: function (d) { return d.c; }, why: 'A full-body session uses everything, so refuel with carbs.' },
-    upper: { label: 'Upper body day', score: function (d) { return d.p; }, why: 'Upper body day is about repair, so protein comes first.' },
-    cardio: { label: 'Cardio day', score: function (d) { return d.c; }, why: 'Cardio runs your energy down, so top your carbs back up.' },
-    train: { label: 'Training day', score: function (d) { return d.p + d.c / 2; }, why: 'Training day, so a solid mix of carbs and protein.' },
-    rest: { label: 'Rest day', score: function (d) { return d.p - d.c / 2; }, why: 'Rest day, so go lower on carbs and keep the protein up.' }
+    legs: { label: 'Legs day', chip: 'Legs today', head: 'YOU TRAINED LEGS. NOW EAT THIS.', score: function (d) { return d.c; }, why: 'Legs is the biggest session going, so refuel with carbs.' },
+    upper: { label: 'Upper body day', chip: 'Upper body today', head: 'YOU TRAINED UPPER BODY. NOW EAT THIS.', score: function (d) { return d.p; }, why: 'Upper body day is about repair, so protein comes first.' },
+    full: { label: 'Full-body day', chip: 'Full body today', head: 'YOU TRAINED FULL BODY. NOW EAT THIS.', score: function (d) { return d.c; }, why: 'A full-body session uses everything, so refuel with carbs.' },
+    cardio: { label: 'Cardio day', chip: 'Cardio today', head: 'YOU DID CARDIO. NOW EAT THIS.', score: function (d) { return d.c; }, why: 'Cardio runs your energy down, so top your carbs back up.' },
+    rest: { label: 'Rest day', chip: 'Rest day today', head: 'IT\'S A REST DAY. EAT THIS.', score: function (d) { return d.p - d.c / 2; }, why: 'Rest day, so go lower on carbs and keep the protein up.' },
+    train: { label: 'Training day', score: function (d) { return d.p + d.c / 2; }, why: 'Training day, so a solid mix of carbs and protein.' }
   };
 
-  function checkedValue(name) {
-    var el = document.querySelector('input[name="' + name + '"]:checked');
-    return el ? el.value : '';
-  }
-
-  function planInputs() {
-    var workouts = Number(checkedValue('plan-workouts'));
-    var today = checkedValue('plan-today');
-    return {
-      goal: checkedValue('plan-goal') === 'cut' ? 'cut' : 'bulk',
-      workouts: WEEK_SHAPES[workouts] ? workouts : 4,
-      today: SESSIONS[today] && today !== 'train' ? today : 'legs'
-    };
-  }
+  // The tiles on the "what did you train today" step.
+  var TODAY_CHOICES = [
+    { id: 'legs', title: 'LEGS', sub: 'Squats, deadlifts, lunges' },
+    { id: 'upper', title: 'UPPER BODY', sub: 'Push, pull, arms' },
+    { id: 'full', title: 'FULL BODY', sub: 'A bit of everything' },
+    { id: 'cardio', title: 'CARDIO', sub: 'Run, bike, class' },
+    { id: 'rest', title: 'REST DAY', sub: 'Nothing today' }
+  ];
 
   // Seven days starting today. Today's meal answers today's session; the days
   // after are training or rest days spread to match the workouts a week.
@@ -235,7 +181,7 @@
   function buildPlan(goal, workouts, today) {
     var pool = MENU.filter(function (d) { return d.goal === goal; });
     if (!pool.length) return [];
-    var shape = WEEK_SHAPES[workouts];
+    var shape = WEEK_SHAPES[workouts] || WEEK_SHAPES[4];
     var types = [today];
     for (var i = 1; i < 7; i++) {
       // If today is a rest day, the week's workouts start tomorrow.
@@ -264,52 +210,114 @@
     });
   }
 
-  function renderPlan() {
-    var out = $('plan-output');
-    if (!out) return;
-    var input = planInputs();
-    var days = buildPlan(input.goal, input.workouts, input.today);
-
-    var cards = days.map(function (d, i) {
-      var head = '<p class="day-when">' + esc(d.when.toUpperCase()) + '</p><h4>' + esc(d.label.toUpperCase()) + '</h4>';
-      if (!plan.unlocked && i > 0) {
-        return '<div class="day day--locked">' + head + '<p class="day-lock">' + LOCK + 'Unlocks with your email</p></div>';
-      }
-      var meal =
-        '<p class="day-why">' + esc(d.why) + '</p>' +
-        '<div class="day-meal"><span class="day-eat">' + (i === 0 ? 'Eat this' : 'Get this') + '</span>' +
-          '<span class="day-meal-name">' + esc(d.dish.name) + '</span>' +
-          '<span class="day-meal-line">' + d.kcal + ' kcal · ' + d.p + 'g protein</span>' +
-          (d.extra ? '<span class="day-extra">With ' + esc(d.extra.short) + ' for ' + d.extra.p + 'g more protein.</span>' : '') +
-        '</div>';
-      if (i === 0) {
-        return '<div class="day day--today">' +
-          '<img class="day-photo" src="' + esc(d.dish.img) + '" alt="' + esc(d.dish.alt || '') + '" style="object-position: ' + esc(d.dish.pos || 'center') + '">' +
-          '<div class="day-body">' + head + meal + '</div></div>';
-      }
-      return '<div class="day">' + head + meal + '</div>';
-    }).join('');
-
-    var training = days.filter(function (d) { return d.training; }).length;
-    var summary = (input.goal === 'bulk' ? 'Bulking' : 'Cutting') + ', with ' + training + ' training ' + (training === 1 ? 'day' : 'days') +
-      ' and ' + (7 - training) + ' rest ' + (7 - training === 1 ? 'day' : 'days') + ' this week.';
-    out.innerHTML =
-      '<div class="plan-output-head"><div>' +
-        '<h3 id="plan-heading" tabindex="-1">' + (plan.unlocked ? 'YOUR BULKTOWN WEEK' : 'EAT THIS TODAY') + '</h3>' +
-        '<p>' + (plan.unlocked ? summary : 'Tomorrow and the rest of your week unlock with your email.') + '</p></div>' +
-        (plan.unlocked ? '<button type="button" class="plan-print" data-print>Print or save as PDF</button>' : '') +
-      '</div>' +
-      '<div class="plan-days">' + cards + '</div>' +
-      (plan.unlocked ? '<p class="plan-foot">This is your Bulktown meal for each day, not everything you eat. How much you need depends on your size and training. Change your answers and the week updates.</p>' : '');
+  function planTop(step) {
+    var bars = [1, 2, 3].map(function (n) { return '<span' + (n <= step ? ' class="on"' : '') + '></span>'; }).join('');
+    return '<div class="plan-top">' +
+      '<p class="plan-progress"><span class="plan-bars" aria-hidden="true">' + bars + '</span>STEP ' + step + ' OF 3</p>' +
+      (step > 1 ? '<button type="button" class="plan-back" data-plan-back>Back</button>' : '') +
+      '</div>';
   }
 
-  // Until the visitor picks a goal in the plan form, it follows the goal they chose at the top.
-  function syncPlanForm() {
-    if (!$('plan-form')) return;
-    if (!plan.goalTouched && state.goal !== 'all') {
-      $('plan-goal-bulk').checked = state.goal === 'bulk';
-      $('plan-goal-cut').checked = state.goal === 'cut';
+  function pressed(on) { return on ? 'true' : 'false'; }
+
+  function renderPlan(moveFocus) {
+    var stage = $('plan-stage');
+    if (!stage) return;
+    var html = '';
+
+    if (plan.step === 1) {
+      var goal = plan.goal || (state.goal !== 'all' ? state.goal : '');
+      html = planTop(1) +
+        '<h3 class="plan-q" id="plan-q" tabindex="-1">WHAT\'S YOUR GOAL?</h3>' +
+        '<div class="choices choices--2">' +
+          '<button type="button" class="choice choice--bulk" data-plan-goal="bulk" aria-pressed="' + pressed(goal === 'bulk') + '">' + arrow('up', 40, 2.5) +
+            '<span class="choice-title">BULKING</span><span class="choice-sub">Build muscle and size</span></button>' +
+          '<button type="button" class="choice choice--cut" data-plan-goal="cut" aria-pressed="' + pressed(goal === 'cut') + '">' + arrow('down', 40, 2.5) +
+            '<span class="choice-title">CUTTING</span><span class="choice-sub">Get lean and defined</span></button>' +
+        '</div>';
+    } else if (plan.step === 2) {
+      html = planTop(2) +
+        '<h3 class="plan-q" id="plan-q" tabindex="-1">HOW MANY WORKOUTS A WEEK?</h3>' +
+        '<p class="plan-hint">Gym, runs, classes. It all counts.</p>' +
+        '<div class="choices choices--7">' + [1, 2, 3, 4, 5, 6, 7].map(function (n) {
+          return '<button type="button" class="choice choice--num" data-plan-workouts="' + n + '" aria-pressed="' + pressed(plan.workouts === n) +
+            '" aria-label="' + n + (n === 1 ? ' workout' : ' workouts') + ' a week"><span class="choice-title">' + n + '</span></button>';
+        }).join('') + '</div>';
+    } else if (plan.step === 3) {
+      html = planTop(3) +
+        '<h3 class="plan-q" id="plan-q" tabindex="-1">WHAT DID YOU TRAIN TODAY?</h3>' +
+        '<div class="choices choices--5">' + TODAY_CHOICES.map(function (c) {
+          return '<button type="button" class="choice" data-plan-today="' + c.id + '" aria-pressed="' + pressed(plan.today === c.id) + '">' +
+            '<span class="choice-title">' + c.title + '</span><span class="choice-sub">' + c.sub + '</span></button>';
+        }).join('') + '</div>';
+    } else {
+      html = renderAnswer();
     }
+
+    stage.innerHTML = html;
+    if (moveFocus) {
+      var heading = $('plan-q');
+      if (heading) heading.focus();
+    }
+  }
+
+  function renderAnswer() {
+    var days = buildPlan(plan.goal, plan.workouts, plan.today);
+    if (!days.length) return '<p>No meals on the menu for that goal yet.</p>';
+    var today = days[0];
+    var session = SESSIONS[plan.today];
+    var training = days.filter(function (d) { return d.training; }).length;
+
+    var answers = '<ul class="plan-answers">' +
+      '<li>' + (plan.goal === 'bulk' ? 'Bulking' : 'Cutting') + '</li>' +
+      '<li>' + plan.workouts + (plan.workouts === 1 ? ' workout' : ' workouts') + ' a week</li>' +
+      '<li>' + session.chip + '</li></ul>';
+
+    var todayCard = '<div class="today">' +
+      '<img class="today-photo" src="' + esc(today.dish.img) + '" alt="' + esc(today.dish.alt || '') + '" style="object-position: ' + esc(today.dish.pos || 'center') + '">' +
+      '<div class="today-body">' +
+        '<p class="day-when">' + esc(today.when.toUpperCase()) + '</p>' +
+        '<h4>' + esc(today.label.toUpperCase()) + '</h4>' +
+        '<p class="day-why">' + esc(today.why) + '</p>' +
+        '<div class="day-meal"><span class="day-eat">Eat this</span>' +
+          '<span class="day-meal-name">' + esc(today.dish.name) + '</span>' +
+          '<span class="day-meal-line">' + today.kcal + ' kcal · ' + today.p + 'g protein</span>' +
+          (today.extra ? '<span class="day-extra">With ' + esc(today.extra.short) + ' for ' + today.extra.p + 'g more protein.</span>' : '') +
+        '</div>' +
+      '</div></div>';
+
+    var rows = days.slice(1).map(function (d) {
+      var right = plan.unlocked
+        ? '<div class="week-meal"><span class="day-meal-name">' + esc(d.dish.name) + '</span>' +
+            '<span class="day-meal-line">' + d.kcal + ' kcal · ' + d.p + 'g protein' + (d.extra ? ' · with ' + esc(d.extra.short) : '') + '</span></div>'
+        : '<span class="week-lock">' + LOCK + 'Locked</span>';
+      return '<li><div class="week-day"><span class="day-when">' + esc(d.when.toUpperCase()) + '</span><strong>' + esc(d.label) + '</strong></div>' + right + '</li>';
+    }).join('');
+
+    var below = plan.unlocked
+      ? '<div class="plan-actions"><button type="button" class="plan-back" data-print>Print or save as PDF</button></div>' +
+        '<p class="plan-foot">This is your Bulktown meal for each day, not everything you eat. How much you need depends on your size and training.</p>'
+      : '<form class="unlock" id="plan-unlock" novalidate>' +
+          '<h5>Unlock the next six days</h5>' +
+          '<p class="plan-small">Free. Enter your email and the full week appears right here.</p>' +
+          '<div class="field"><label for="plan-email">Email</label>' +
+            '<input type="email" id="plan-email" autocomplete="email" placeholder="name@example.com" aria-describedby="plan-email-error" required>' +
+            '<p class="field-error" id="plan-email-error" role="alert"></p></div>' +
+          '<label class="check" for="plan-optin"><input type="checkbox" id="plan-optin">' +
+            '<span>Email me Bulktown news and offers too. You can unsubscribe at any time.</span></label>' +
+          '<div class="hp" aria-hidden="true"><label for="plan-company">Company</label><input type="text" id="plan-company" tabindex="-1" autocomplete="off"></div>' +
+          '<button class="btn btn--ink" type="submit" id="plan-submit">Unlock my week</button>' +
+          '<p class="plan-small"><a href="#">Privacy policy</a></p>' + // TODO: link the privacy policy
+        '</form>';
+
+    return '<div class="plan-top">' + answers + '<button type="button" class="plan-back" data-plan-restart>Start again</button></div>' +
+      '<h3 class="plan-q" id="plan-q" tabindex="-1">' + session.head + '</h3>' +
+      '<div class="plan-result">' + todayCard +
+        '<div class="week"><div><h4>' + (plan.unlocked ? 'YOUR BULKTOWN WEEK' : 'THE REST OF YOUR WEEK') + '</h4>' +
+          '<p class="week-sum">' + training + ' training ' + (training === 1 ? 'day' : 'days') + ' and ' + (7 - training) + ' rest ' + (7 - training === 1 ? 'day' : 'days') + ', each with its own meal.</p></div>' +
+          '<ul class="week-list">' + rows + '</ul>' + below +
+        '</div>' +
+      '</div>';
   }
 
   function sendSignup(payload) {
@@ -328,62 +336,49 @@
     }).then(function () {}, function () {});
   }
 
-  var planForm = $('plan-form');
-  if (planForm) {
-    planForm.addEventListener('change', function (event) {
-      if (event.target.name === 'plan-goal') plan.goalTouched = true;
-      renderPlan();
-    });
-    $('plan-email').addEventListener('input', function () {
-      $('plan-email').removeAttribute('aria-invalid');
-      $('plan-email-error').textContent = '';
-    });
-    planForm.addEventListener('submit', function (event) {
-      event.preventDefault();
-      var email = $('plan-email');
-      var value = email.value.trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        email.setAttribute('aria-invalid', 'true');
-        $('plan-email-error').textContent = value ? 'That email doesn\'t look right. Check it and try again.' : 'Enter your email to get your week.';
-        email.focus();
-        return;
-      }
-      var unlock = function () {
-        plan.unlocked = true;
-        button.disabled = false;
-        button.textContent = 'Update my week';
-        renderPlan();
-        var heading = $('plan-heading');
-        if (heading) heading.focus();
-      };
-      var button = $('plan-submit');
-      if ($('plan-company').value) { unlock(); return; } // filled only by bots
-      var input = planInputs();
-      // The same email submitting again only refreshes the plan, it isn't sent twice.
-      if (plan.sentFor === value) { unlock(); return; }
-      plan.sentFor = value;
-      button.disabled = true;
-      button.textContent = 'Building your week…';
-      sendSignup({
-        email: value,
-        goal: input.goal,
-        workouts_per_week: input.workouts,
-        trained_today: input.today,
-        marketing_opt_in: $('plan-optin').checked ? 'Yes' : 'No'
-      }).then(unlock);
-    });
-  }
-
-  document.addEventListener('click', function (event) {
-    if (event.target.closest && event.target.closest('[data-print]')) window.print();
+  document.addEventListener('submit', function (event) {
+    if (event.target.id !== 'plan-unlock') return;
+    event.preventDefault();
+    var email = $('plan-email');
+    var value = email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      email.setAttribute('aria-invalid', 'true');
+      $('plan-email-error').textContent = value ? 'That email doesn\'t look right. Check it and try again.' : 'Enter your email to unlock your week.';
+      email.focus();
+      return;
+    }
+    var unlock = function () {
+      plan.unlocked = true;
+      renderPlan(true);
+    };
+    // The hidden "company" box is only ever filled by bots, and the same email is never sent twice.
+    if ($('plan-company').value || plan.sentFor === value) { unlock(); return; }
+    plan.sentFor = value;
+    var button = $('plan-submit');
+    button.disabled = true;
+    button.textContent = 'Unlocking…';
+    sendSignup({
+      email: value,
+      goal: plan.goal,
+      workouts_per_week: plan.workouts,
+      trained_today: plan.today,
+      marketing_opt_in: $('plan-optin').checked ? 'Yes' : 'No'
+    }).then(unlock);
   });
+
+  document.addEventListener('input', function (event) {
+    if (event.target.id !== 'plan-email') return;
+    event.target.removeAttribute('aria-invalid');
+    $('plan-email-error').textContent = '';
+  });
+
+  /* ---------- Page ---------- */
 
   function render(focusKey) {
     renderGoal();
     renderMenu();
-    renderTray();
-    syncPlanForm();
-    renderPlan();
+    // The first question highlights the goal picked at the top of the page.
+    if (plan.step === 1) renderPlan();
     save();
     // Re-drawing replaces the button that was just pressed, so put focus back on its replacement.
     if (focusKey) {
@@ -392,15 +387,48 @@
     }
   }
 
-  function setQty(id, qty) {
-    if (qty <= 0) { delete state.tray[id]; } else { state.tray[id] = qty; }
-  }
-
   document.addEventListener('click', function (event) {
-    var el = event.target.closest('button');
+    var el = event.target.closest ? event.target.closest('button') : null;
     if (!el) return;
-    var key = el.getAttribute('data-key');
 
+    // Meal plan steps
+    if (el.hasAttribute('data-plan-goal')) {
+      plan.goal = el.getAttribute('data-plan-goal');
+      state.goal = plan.goal; // one goal across the whole page
+      plan.step = 2;
+      renderGoal(); renderMenu(); save();
+      renderPlan(true);
+      return;
+    }
+    if (el.hasAttribute('data-plan-workouts')) {
+      plan.workouts = Number(el.getAttribute('data-plan-workouts'));
+      plan.step = 3;
+      renderPlan(true);
+      return;
+    }
+    if (el.hasAttribute('data-plan-today')) {
+      plan.today = el.getAttribute('data-plan-today');
+      plan.step = 4;
+      renderPlan(true);
+      return;
+    }
+    if (el.hasAttribute('data-plan-back')) {
+      plan.step = Math.max(1, plan.step - 1);
+      renderPlan(true);
+      return;
+    }
+    if (el.hasAttribute('data-plan-restart')) {
+      plan.step = 1;
+      renderPlan(true);
+      return;
+    }
+    if (el.hasAttribute('data-print')) {
+      window.print();
+      return;
+    }
+
+    // Goal picker, menu filter and protein add-ons
+    var key = el.getAttribute('data-key');
     if (el.hasAttribute('data-goal')) {
       var goal = el.getAttribute('data-goal');
       state.goal = state.goal === goal ? 'all' : goal;
@@ -409,16 +437,6 @@
     } else if (el.hasAttribute('data-addon')) {
       var addonId = el.getAttribute('data-addon');
       state.addons[addonId] = !state.addons[addonId];
-    } else if (el.hasAttribute('data-add')) {
-      var addId = el.getAttribute('data-add');
-      setQty(addId, (state.tray[addId] || 0) + 1);
-    } else if (el.hasAttribute('data-qty')) {
-      var qtyId = el.getAttribute('data-qty');
-      setQty(qtyId, (state.tray[qtyId] || 0) + Number(el.getAttribute('data-delta')));
-    } else if (el.hasAttribute('data-target')) {
-      state.target = Math.max(60, Math.min(300, state.target + Number(el.getAttribute('data-target'))));
-    } else if (el.hasAttribute('data-clear')) {
-      state.tray = {};
     } else {
       return;
     }
@@ -434,4 +452,5 @@
   } catch (e) { /* leave the video as it is */ }
 
   render();
+  renderPlan();
 })();

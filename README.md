@@ -11,7 +11,7 @@ It is a plain static site: HTML, CSS and JavaScript with no build step. Open `in
 | `index.html` | The page |
 | `styles.css` | All styling. Brand colours are at the top (`--bulk`, `--cut`) |
 | `menu.js` | The dishes, macros and protein add-ons. Edit this to change the menu |
-| `app.js` | Goal picker, menu filter, the "Your day" tracker and the meal plan |
+| `app.js` | Goal picker, menu filter and the meal plan quiz |
 | `config.js` | Site settings. The key that makes meal plan sign-ups reach an inbox goes here |
 | `images/` | Photos |
 
@@ -21,7 +21,13 @@ Edit `menu.js`. Each dish has its name, description, calories, protein, carbs, f
 
 ## Meal plan sign-ups
 
-The "You trained. Now eat this." section asks for the visitor's goal, how many workouts they do a week and what they trained today. It picks today's meal from `menu.js` to suit that session, then lines up the next six days as training or rest days. Today shows for free; the rest of the week unlocks when the visitor gives an email.
+The "You trained. Now eat this." section is a three-step quiz, one question per screen:
+
+1. What's your goal? (bulking or cutting)
+2. How many workouts a week? (1 to 7)
+3. What did you train today? (legs, upper body, full body, cardio or rest day)
+
+It then shows today's meal with the reason for it. The next six days are listed as training or rest days and stay locked until the visitor gives an email.
 
 How meals are matched (the `SESSIONS` list in `app.js`): legs, full-body and cardio days get the meal with the most carbs, upper body days the most protein, rest days the meal that is lowest in carbs for its protein. Training days include the meal's protein add-on. The same meal is never suggested two days running.
 

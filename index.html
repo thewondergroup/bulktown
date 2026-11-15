@@ -65,7 +65,7 @@
 
       <div class="hero-actions">
         <a class="btn btn--white" href="#menu" id="menu-cta">See the full menu</a>
-        <a class="btn btn--outline" href="#how">How it works</a>
+        <a class="btn btn--outline" href="#plan">Get a free meal plan</a>
       </div>
     </div>
 
@@ -99,7 +99,7 @@
       <li>
         <span class="step-num" aria-hidden="true">03</span>
         <h3>Eat. Train. Repeat.</h3>
-        <p>Build your day on the menu and watch your protein add up. The numbers are already done for you.</p>
+        <p>Tell us what you trained and we'll tell you what to eat. The numbers are already done for you.</p>
       </li>
     </ol>
   </div>
@@ -152,106 +152,22 @@
     </div>
     <p class="menu-summary"><span id="menu-summary" aria-live="polite">Showing all meals.</span> Macros are per serving and update when you add extra protein.</p>
 
-    <div class="menu-layout">
-      <div class="menu-grid" id="menu-grid">
-        <noscript><p>Turn on JavaScript to see the menu and build your day.</p></noscript>
-      </div>
-
-      <aside class="tray" aria-label="Your day">
-        <div>
-          <p class="eyebrow eyebrow--light">BUILD YOUR DAY</p>
-          <h3 class="tray-title">YOUR DAY</h3>
-        </div>
-
-        <div class="tray-target">
-          <div class="tray-target-row">
-            <span>Protein target</span>
-            <div class="stepper">
-              <button type="button" class="round-btn round-btn--strong" data-target="-10" aria-label="Lower protein target by 10 grams">−</button>
-              <span class="stepper-value" id="target-value">150g</span>
-              <button type="button" class="round-btn round-btn--strong" data-target="10" aria-label="Raise protein target by 10 grams">+</button>
-            </div>
-          </div>
-          <div class="progress" id="progress" role="img" aria-label="0 of 150 grams of protein">
-            <div class="progress-fill" id="progress-fill"></div>
-          </div>
-          <p class="progress-line" id="progress-line" aria-live="polite">Add meals to start counting.</p>
-        </div>
-
-        <div id="tray-body"></div>
-        <a class="tray-plan-link" href="#plan">Want the whole week? Get a free meal plan</a>
-      </aside>
+    <div class="menu-grid" id="menu-grid">
+      <noscript><p>Turn on JavaScript to see the menu.</p></noscript>
     </div>
   </div>
 </section>
 
 <section class="plan" id="plan">
   <div class="wrap plan-inner">
-    <div class="plan-copy">
-      <div class="section-head">
-        <p class="eyebrow">FREE MEAL PLAN</p>
-        <h2>YOU TRAINED.<br>NOW EAT THIS.</h2>
-      </div>
-      <p class="plan-lede">Tell us your goal, how often you train and what you did today. We'll tell you what to eat today, then line up the rest of your week. It's free. All we ask for is your email.</p>
-
-      <form class="plan-form" id="plan-form" novalidate>
-        <fieldset class="field">
-          <legend>What's your goal?</legend>
-          <div class="seg seg--2">
-            <input type="radio" name="plan-goal" id="plan-goal-bulk" value="bulk" checked>
-            <label for="plan-goal-bulk" class="seg--bulk">Bulking</label>
-            <input type="radio" name="plan-goal" id="plan-goal-cut" value="cut">
-            <label for="plan-goal-cut" class="seg--cut">Cutting</label>
-          </div>
-        </fieldset>
-
-        <fieldset class="field">
-          <legend>How many workouts a week?</legend>
-          <div class="seg seg--7">
-            <input type="radio" name="plan-workouts" id="plan-w1" value="1"><label for="plan-w1">1</label>
-            <input type="radio" name="plan-workouts" id="plan-w2" value="2"><label for="plan-w2">2</label>
-            <input type="radio" name="plan-workouts" id="plan-w3" value="3"><label for="plan-w3">3</label>
-            <input type="radio" name="plan-workouts" id="plan-w4" value="4" checked><label for="plan-w4">4</label>
-            <input type="radio" name="plan-workouts" id="plan-w5" value="5"><label for="plan-w5">5</label>
-            <input type="radio" name="plan-workouts" id="plan-w6" value="6"><label for="plan-w6">6</label>
-            <input type="radio" name="plan-workouts" id="plan-w7" value="7"><label for="plan-w7">7</label>
-          </div>
-        </fieldset>
-
-        <fieldset class="field">
-          <legend>What did you train today?</legend>
-          <div class="seg seg--wrap">
-            <input type="radio" name="plan-today" id="plan-t-legs" value="legs" checked><label for="plan-t-legs">Legs</label>
-            <input type="radio" name="plan-today" id="plan-t-upper" value="upper"><label for="plan-t-upper">Upper body</label>
-            <input type="radio" name="plan-today" id="plan-t-full" value="full"><label for="plan-t-full">Full body</label>
-            <input type="radio" name="plan-today" id="plan-t-cardio" value="cardio"><label for="plan-t-cardio">Cardio</label>
-            <input type="radio" name="plan-today" id="plan-t-rest" value="rest"><label for="plan-t-rest">Rest day</label>
-          </div>
-        </fieldset>
-
-        <div class="field">
-          <label for="plan-email">Email</label>
-          <input type="email" id="plan-email" autocomplete="email" placeholder="name@example.com" aria-describedby="plan-email-error" required>
-          <p class="field-error" id="plan-email-error" role="alert"></p>
-        </div>
-
-        <label class="check" for="plan-optin">
-          <input type="checkbox" id="plan-optin">
-          <span>Email me Bulktown news and offers too. You can unsubscribe at any time.</span>
-        </label>
-
-        <div class="hp" aria-hidden="true">
-          <label for="plan-company">Company</label>
-          <input type="text" id="plan-company" tabindex="-1" autocomplete="off">
-        </div>
-
-        <button class="btn btn--ink" type="submit" id="plan-submit">Get my week</button>
-        <!-- TODO: link the privacy policy -->
-        <p class="plan-small">Your week appears on this page as soon as you sign up. <a href="#">Privacy policy</a></p>
-      </form>
+    <div class="section-head plan-head">
+      <p class="eyebrow">FREE MEAL PLAN</p>
+      <h2>YOU TRAINED.<br>NOW EAT THIS.</h2>
+      <p class="plan-lede">Three quick questions. We'll tell you what to eat today, then line up the rest of your week.</p>
     </div>
-
-    <div class="plan-output" id="plan-output"></div>
+    <div class="plan-stage" id="plan-stage">
+      <noscript><p>Turn on JavaScript to build your meal plan.</p></noscript>
+    </div>
   </div>
 </section>
 
