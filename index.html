@@ -190,14 +190,14 @@
     <div class="plan-copy">
       <div class="section-head">
         <p class="eyebrow">FREE MEAL PLAN</p>
-        <h2>YOUR WEEK,<br>PLANNED.</h2>
+        <h2>YOU TRAINED.<br>NOW EAT THIS.</h2>
       </div>
-      <p class="plan-lede">Tell us your goal and we'll build you a five-day Bulktown plan, with the calories and protein added up for every day. It's free. All we ask for is your email.</p>
+      <p class="plan-lede">Tell us your goal, how often you train and what you did today. We'll tell you what to eat today, then line up the rest of your week. It's free. All we ask for is your email.</p>
 
       <form class="plan-form" id="plan-form" novalidate>
         <fieldset class="field">
-          <legend>Your goal</legend>
-          <div class="seg">
+          <legend>What's your goal?</legend>
+          <div class="seg seg--2">
             <input type="radio" name="plan-goal" id="plan-goal-bulk" value="bulk" checked>
             <label for="plan-goal-bulk" class="seg--bulk">Bulking</label>
             <input type="radio" name="plan-goal" id="plan-goal-cut" value="cut">
@@ -205,23 +205,29 @@
           </div>
         </fieldset>
 
-        <div class="field-row">
-          <div class="field">
-            <label for="plan-meals">Bulktown meals a day</label>
-            <select id="plan-meals">
-              <option value="1">1 meal</option>
-              <option value="2" selected>2 meals</option>
-              <option value="3">3 meals</option>
-            </select>
+        <fieldset class="field">
+          <legend>How many workouts a week?</legend>
+          <div class="seg seg--7">
+            <input type="radio" name="plan-workouts" id="plan-w1" value="1"><label for="plan-w1">1</label>
+            <input type="radio" name="plan-workouts" id="plan-w2" value="2"><label for="plan-w2">2</label>
+            <input type="radio" name="plan-workouts" id="plan-w3" value="3"><label for="plan-w3">3</label>
+            <input type="radio" name="plan-workouts" id="plan-w4" value="4" checked><label for="plan-w4">4</label>
+            <input type="radio" name="plan-workouts" id="plan-w5" value="5"><label for="plan-w5">5</label>
+            <input type="radio" name="plan-workouts" id="plan-w6" value="6"><label for="plan-w6">6</label>
+            <input type="radio" name="plan-workouts" id="plan-w7" value="7"><label for="plan-w7">7</label>
           </div>
-          <div class="field">
-            <label for="plan-target">Daily protein target</label>
-            <div class="input-unit">
-              <input type="number" id="plan-target" min="60" max="300" step="10" value="150" inputmode="numeric">
-              <span aria-hidden="true">g</span>
-            </div>
+        </fieldset>
+
+        <fieldset class="field">
+          <legend>What did you train today?</legend>
+          <div class="seg seg--wrap">
+            <input type="radio" name="plan-today" id="plan-t-legs" value="legs" checked><label for="plan-t-legs">Legs</label>
+            <input type="radio" name="plan-today" id="plan-t-upper" value="upper"><label for="plan-t-upper">Upper body</label>
+            <input type="radio" name="plan-today" id="plan-t-full" value="full"><label for="plan-t-full">Full body</label>
+            <input type="radio" name="plan-today" id="plan-t-cardio" value="cardio"><label for="plan-t-cardio">Cardio</label>
+            <input type="radio" name="plan-today" id="plan-t-rest" value="rest"><label for="plan-t-rest">Rest day</label>
           </div>
-        </div>
+        </fieldset>
 
         <div class="field">
           <label for="plan-email">Email</label>
@@ -239,9 +245,9 @@
           <input type="text" id="plan-company" tabindex="-1" autocomplete="off">
         </div>
 
-        <button class="btn btn--ink" type="submit" id="plan-submit">Build my plan</button>
+        <button class="btn btn--ink" type="submit" id="plan-submit">Get my week</button>
         <!-- TODO: link the privacy policy -->
-        <p class="plan-small">Your plan appears on this page as soon as you sign up. <a href="#">Privacy policy</a></p>
+        <p class="plan-small">Your week appears on this page as soon as you sign up. <a href="#">Privacy policy</a></p>
       </form>
     </div>
 

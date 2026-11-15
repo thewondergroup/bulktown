@@ -214,9 +214,13 @@ body[data-goal="cut"] .tray-totals .protein dd { color: #FFFFFF; }
 .input-unit input { padding-right: 36px; }
 .field-error { min-height: 0; font-size: 14px; font-weight: 600; color: #B3261E; }
 .field-error:empty { display: none; }
-.seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.seg { display: grid; gap: 8px; }
+.seg--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.seg--7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.seg--wrap { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
 .seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .seg label { display: flex; align-items: center; justify-content: center; min-height: 48px; border: 2px solid var(--ink); border-radius: 10px; font-weight: 700; cursor: pointer; }
+.seg input:checked + label { background: var(--ink); color: #FFFFFF; }
 .seg input:checked + .seg--bulk { background: var(--bulk); color: var(--ink); }
 .seg input:checked + .seg--cut { background: var(--cut); color: #FFFFFF; }
 .seg input:focus-visible + label { outline: 3px solid var(--ink); outline-offset: 3px; }
@@ -233,17 +237,23 @@ body[data-goal="cut"] .tray-totals .protein dd { color: #FFFFFF; }
 .plan-output-head p { margin-top: 8px; font-size: 15px; color: var(--grey); }
 .plan-print { min-height: 44px; padding: 8px 18px; border: 2px solid var(--ink); border-radius: 999px; background: transparent; color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; }
 .plan-days { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
-.day { display: flex; flex-direction: column; gap: 14px; background: #FFFFFF; border: 2px solid var(--ink); border-radius: 16px; padding: 20px; }
+.day { display: flex; flex-direction: column; gap: 10px; background: #FFFFFF; border: 2px solid var(--ink); border-radius: 16px; padding: 20px; }
+.day-when { font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; color: var(--grey); }
 .day h4 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; line-height: 1; }
-.day-meals { display: flex; flex-direction: column; gap: 10px; }
-.day-meals li { border-top: 1px solid #D0D0CA; padding-top: 10px; }
-.day-meal-name { display: block; font-size: 15px; font-weight: 700; line-height: 1.3; }
-.day-meal-line { display: block; margin-top: 2px; font-family: var(--mono); font-size: 13px; color: var(--grey); }
-.day-total { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: auto; border-top: 4px solid var(--ink); padding-top: 12px; font-family: var(--mono); font-size: 15px; font-weight: 700; }
-.day-note { font-size: 14px; line-height: 1.45; color: var(--grey); }
-.day--locked { justify-content: center; align-items: flex-start; min-height: 150px; background: transparent; border-style: dashed; color: var(--grey); }
-.day--locked h4 { color: var(--ink); }
-.day--locked p { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.day-why { font-size: 14px; line-height: 1.45; color: var(--grey); }
+.day-meal { display: flex; flex-direction: column; gap: 3px; margin-top: auto; border-top: 4px solid var(--ink); padding-top: 12px; }
+.day-eat { font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.day-meal-name { font-size: 16px; font-weight: 700; line-height: 1.3; }
+.day-meal-line { font-family: var(--mono); font-size: 13px; color: var(--grey); }
+.day-extra { margin-top: 4px; font-size: 14px; line-height: 1.4; color: var(--grey); }
+.day--today { grid-column: 1 / -1; flex-direction: row; gap: 0; padding: 0; overflow: hidden; }
+.day--today .day-photo { width: 42%; min-height: 260px; object-fit: cover; border-right: 2px solid var(--ink); }
+.day--today .day-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; padding: 24px; }
+.day--today h4 { font-size: 40px; }
+.day--today .day-why { font-size: 16px; }
+.day--today .day-meal-name { font-size: 20px; }
+.day--locked { min-height: 150px; background: transparent; border-style: dashed; }
+.day-lock { display: flex; align-items: center; gap: 8px; margin-top: auto; font-size: 14px; font-weight: 600; color: var(--grey); }
 .plan-foot { font-size: 14px; line-height: 1.5; color: var(--grey); }
 
 /* Visit */
@@ -283,6 +293,10 @@ body[data-goal="cut"] .track { display: inline-block; background: var(--cut); co
 @media (max-width: 640px) {
   .plan-inner { padding-top: 72px; padding-bottom: 72px; gap: 40px; }
   .plan-form { padding: 20px; }
+  .seg--7 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .day--today { flex-direction: column; }
+  .day--today .day-photo { width: 100%; min-height: 0; aspect-ratio: 16 / 9; border-right: 0; border-bottom: 2px solid var(--ink); }
+  .day--today h4 { font-size: 32px; }
 }
 
 /* Printing gives just the meal plan */

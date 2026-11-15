@@ -21,10 +21,12 @@ Edit `menu.js`. Each dish has its name, description, calories, protein, carbs, f
 
 ## Meal plan sign-ups
 
-The "Your week, planned" section builds a five-day plan from the dishes in `menu.js` and unlocks it when the visitor gives an email.
+The "You trained. Now eat this." section asks for the visitor's goal, how many workouts they do a week and what they trained today. It picks today's meal from `menu.js` to suit that session, then lines up the next six days as training or rest days. Today shows for free; the rest of the week unlocks when the visitor gives an email.
+
+How meals are matched (the `SESSIONS` list in `app.js`): legs, full-body and cardio days get the meal with the most carbs, upper body days the most protein, rest days the meal that is lowest in carbs for its protein. Training days include the meal's protein add-on. The same meal is never suggested two days running.
 
 - Sign-ups are sent through [Web3Forms](https://web3forms.com). Paste the access key into `config.js`. **Until a key is set, no emails are saved.**
-- Each sign-up arrives with the email, goal, meals a day, protein target, and whether they ticked the marketing box.
+- Each sign-up arrives with the email, goal, workouts a week, what they trained today, and whether they ticked the marketing box.
 - Only email people marketing if `marketing_opt_in` is `Yes`. The box is unticked by default on purpose: UK rules need an active opt-in for marketing email.
 - Link the privacy policy in the form (currently `#`).
 

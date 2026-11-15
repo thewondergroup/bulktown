@@ -195,47 +195,72 @@
 
   /* ---------- Meal plan ---------- */
 
-  var DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+  var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var LOCK = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-  var plan = { unlocked: false, goalTouched: false, targetTouched: false };
+  var plan = { unlocked: false, goalTouched: false, sentFor: '' };
+
+  // Which of the next seven days are training days (T) or rest days (R),
+  // starting today, for 1 to 7 workouts a week.
+  var WEEK_SHAPES = { 1: 'TRRRRRR', 2: 'TRRTRRR', 3: 'TRTRTRR', 4: 'TTRTTRR', 5: 'TTTRTTR', 6: 'TTTTTTR', 7: 'TTTTTTT' };
+
+  // What each kind of day asks for. `score` ranks the meals for that day (highest wins).
+  var SESSIONS = {
+    legs: { label: 'Legs day', score: function (d) { return d.c; }, why: 'Legs is the biggest session going, so refuel with carbs.' },
+    full: { label: 'Full-body day', score: function (d) { return d.c; }, why: 'A full-body session uses everything, so refuel with carbs.' },
+    upper: { label: 'Upper body day', score: function (d) { return d.p; }, why: 'Upper body day is about repair, so protein comes first.' },
+    cardio: { label: 'Cardio day', score: function (d) { return d.c; }, why: 'Cardio runs your energy down, so top your carbs back up.' },
+    train: { label: 'Training day', score: function (d) { return d.p + d.c / 2; }, why: 'Training day, so a solid mix of carbs and protein.' },
+    rest: { label: 'Rest day', score: function (d) { return d.p - d.c / 2; }, why: 'Rest day, so go lower on carbs and keep the protein up.' }
+  };
+
+  function checkedValue(name) {
+    var el = document.querySelector('input[name="' + name + '"]:checked');
+    return el ? el.value : '';
+  }
 
   function planInputs() {
-    var cut = $('plan-goal-cut');
-    var target = Number($('plan-target').value);
-    if (!(target >= 60)) target = 60;
-    if (target > 300) target = 300;
+    var workouts = Number(checkedValue('plan-workouts'));
+    var today = checkedValue('plan-today');
     return {
-      goal: cut && cut.checked ? 'cut' : 'bulk',
-      meals: Math.max(1, Math.min(3, Number($('plan-meals').value) || 2)),
-      target: target
+      goal: checkedValue('plan-goal') === 'cut' ? 'cut' : 'bulk',
+      workouts: WEEK_SHAPES[workouts] ? workouts : 4,
+      today: SESSIONS[today] && today !== 'train' ? today : 'legs'
     };
   }
 
-  // Five days from the dishes that match the goal. Each day rotates through the
-  // dishes, then switches on protein add-ons (biggest first) until the target is met.
-  function buildPlan(goal, meals, target) {
+  // Seven days starting today. Today's meal answers today's session; the days
+  // after are training or rest days spread to match the workouts a week.
+  // The same meal is never suggested two days running, and training days
+  // come with the meal's protein add-on.
+  function buildPlan(goal, workouts, today) {
     var pool = MENU.filter(function (d) { return d.goal === goal; });
     if (!pool.length) return [];
-    return DAYS.map(function (day, i) {
-      var picks = [];
-      for (var k = 0; k < meals; k++) picks.push({ dish: pool[(i + k) % pool.length], on: false });
-      var protein = picks.reduce(function (sum, x) { return sum + x.dish.p; }, 0);
-      picks.filter(function (x) { return ADDONS[x.dish.addon]; })
-        .sort(function (a, b) { return ADDONS[b.dish.addon].p - ADDONS[a.dish.addon].p; })
-        .forEach(function (x) {
-          if (protein >= target) return;
-          x.on = true;
-          protein += ADDONS[x.dish.addon].p;
-        });
-      var kcal = 0;
-      var rows = picks.map(function (x) {
-        var extra = x.on ? ADDONS[x.dish.addon] : null;
-        var k2 = x.dish.kcal + (extra ? extra.kcal : 0);
-        var p2 = x.dish.p + (extra ? extra.p : 0);
-        kcal += k2;
-        return { name: x.dish.name + (extra ? ' + ' + extra.short : ''), kcal: k2, p: p2 };
-      });
-      return { day: day, rows: rows, kcal: kcal, p: protein, gap: Math.max(0, target - protein) };
+    var shape = WEEK_SHAPES[workouts];
+    var types = [today];
+    for (var i = 1; i < 7; i++) {
+      // If today is a rest day, the week's workouts start tomorrow.
+      var slot = today === 'rest' ? shape.charAt(i - 1) : shape.charAt(i);
+      types.push(slot === 'T' ? 'train' : 'rest');
+    }
+    var todayIndex = new Date().getDay();
+    var previous = null;
+    return types.map(function (type, n) {
+      var session = SESSIONS[type];
+      var choices = pool.filter(function (d) { return pool.length === 1 || d !== previous; });
+      var dish = choices.reduce(function (best, d) { return session.score(d) > session.score(best) ? d : best; });
+      previous = dish;
+      var extra = type !== 'rest' ? ADDONS[dish.addon] : null;
+      var weekday = WEEKDAYS[(todayIndex + n) % 7];
+      return {
+        when: n === 0 ? 'Today · ' + weekday : n === 1 ? 'Tomorrow · ' + weekday : weekday,
+        label: session.label,
+        why: session.why,
+        dish: dish,
+        extra: extra || null,
+        kcal: dish.kcal + (extra ? extra.kcal : 0),
+        p: dish.p + (extra ? extra.p : 0),
+        training: type !== 'rest'
+      };
     });
   }
 
@@ -243,41 +268,48 @@
     var out = $('plan-output');
     if (!out) return;
     var input = planInputs();
-    var days = buildPlan(input.goal, input.meals, input.target);
+    var days = buildPlan(input.goal, input.workouts, input.today);
 
     var cards = days.map(function (d, i) {
+      var head = '<p class="day-when">' + esc(d.when.toUpperCase()) + '</p><h4>' + esc(d.label.toUpperCase()) + '</h4>';
       if (!plan.unlocked && i > 0) {
-        return '<div class="day day--locked"><h4>' + d.day.toUpperCase() + '</h4><p>' + LOCK + 'Unlocks with your email</p></div>';
+        return '<div class="day day--locked">' + head + '<p class="day-lock">' + LOCK + 'Unlocks with your email</p></div>';
       }
-      return '<div class="day"><h4>' + d.day.toUpperCase() + '</h4>' +
-        '<ul class="day-meals">' + d.rows.map(function (r) {
-          return '<li><span class="day-meal-name">' + esc(r.name) + '</span><span class="day-meal-line">' + r.kcal + ' kcal · ' + r.p + 'g protein</span></li>';
-        }).join('') + '</ul>' +
-        '<div class="day-total"><span>' + d.kcal + ' kcal</span><span>' + d.p + 'g protein</span></div>' +
-        '<p class="day-note">' + (d.gap > 0 ? d.gap + 'g of protein left to get from your other meals.' : 'Protein target met.') + '</p>' +
+      var meal =
+        '<p class="day-why">' + esc(d.why) + '</p>' +
+        '<div class="day-meal"><span class="day-eat">' + (i === 0 ? 'Eat this' : 'Get this') + '</span>' +
+          '<span class="day-meal-name">' + esc(d.dish.name) + '</span>' +
+          '<span class="day-meal-line">' + d.kcal + ' kcal · ' + d.p + 'g protein</span>' +
+          (d.extra ? '<span class="day-extra">With ' + esc(d.extra.short) + ' for ' + d.extra.p + 'g more protein.</span>' : '') +
         '</div>';
+      if (i === 0) {
+        return '<div class="day day--today">' +
+          '<img class="day-photo" src="' + esc(d.dish.img) + '" alt="' + esc(d.dish.alt || '') + '" style="object-position: ' + esc(d.dish.pos || 'center') + '">' +
+          '<div class="day-body">' + head + meal + '</div></div>';
+      }
+      return '<div class="day">' + head + meal + '</div>';
     }).join('');
 
-    var goalWord = input.goal === 'bulk' ? 'bulking' : 'cutting';
-    var summary = 'Five days of ' + goalWord + ', ' + input.meals + (input.meals === 1 ? ' meal' : ' meals') + ' a day, aiming for ' + input.target + 'g protein.';
+    var training = days.filter(function (d) { return d.training; }).length;
+    var summary = (input.goal === 'bulk' ? 'Bulking' : 'Cutting') + ', with ' + training + ' training ' + (training === 1 ? 'day' : 'days') +
+      ' and ' + (7 - training) + ' rest ' + (7 - training === 1 ? 'day' : 'days') + ' this week.';
     out.innerHTML =
       '<div class="plan-output-head"><div>' +
-        '<h3 id="plan-heading" tabindex="-1">' + (plan.unlocked ? 'YOUR BULKTOWN WEEK' : 'A TASTE OF YOUR PLAN') + '</h3>' +
-        '<p>' + (plan.unlocked ? summary : 'Monday is on us. Enter your email for the full week.') + '</p></div>' +
+        '<h3 id="plan-heading" tabindex="-1">' + (plan.unlocked ? 'YOUR BULKTOWN WEEK' : 'EAT THIS TODAY') + '</h3>' +
+        '<p>' + (plan.unlocked ? summary : 'Tomorrow and the rest of your week unlock with your email.') + '</p></div>' +
         (plan.unlocked ? '<button type="button" class="plan-print" data-print>Print or save as PDF</button>' : '') +
       '</div>' +
       '<div class="plan-days">' + cards + '</div>' +
-      (plan.unlocked ? '<p class="plan-foot">This covers your Bulktown meals, not everything you eat in a day. How much you need depends on your size and training.</p>' : '');
+      (plan.unlocked ? '<p class="plan-foot">This is your Bulktown meal for each day, not everything you eat. How much you need depends on your size and training. Change your answers and the week updates.</p>' : '');
   }
 
-  // Until the visitor edits the plan form, it follows the goal and target they picked above.
+  // Until the visitor picks a goal in the plan form, it follows the goal they chose at the top.
   function syncPlanForm() {
     if (!$('plan-form')) return;
     if (!plan.goalTouched && state.goal !== 'all') {
       $('plan-goal-bulk').checked = state.goal === 'bulk';
       $('plan-goal-cut').checked = state.goal === 'cut';
     }
-    if (!plan.targetTouched) $('plan-target').value = state.target;
   }
 
   function sendSignup(payload) {
@@ -300,7 +332,6 @@
   if (planForm) {
     planForm.addEventListener('change', function (event) {
       if (event.target.name === 'plan-goal') plan.goalTouched = true;
-      if (event.target.id === 'plan-target') plan.targetTouched = true;
       renderPlan();
     });
     $('plan-email').addEventListener('input', function () {
@@ -313,14 +344,14 @@
       var value = email.value.trim();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
         email.setAttribute('aria-invalid', 'true');
-        $('plan-email-error').textContent = value ? 'That email doesn\'t look right. Check it and try again.' : 'Enter your email to get your plan.';
+        $('plan-email-error').textContent = value ? 'That email doesn\'t look right. Check it and try again.' : 'Enter your email to get your week.';
         email.focus();
         return;
       }
       var unlock = function () {
         plan.unlocked = true;
         button.disabled = false;
-        button.textContent = 'Update my plan';
+        button.textContent = 'Update my week';
         renderPlan();
         var heading = $('plan-heading');
         if (heading) heading.focus();
@@ -332,12 +363,12 @@
       if (plan.sentFor === value) { unlock(); return; }
       plan.sentFor = value;
       button.disabled = true;
-      button.textContent = 'Building your plan…';
+      button.textContent = 'Building your week…';
       sendSignup({
         email: value,
         goal: input.goal,
-        meals_per_day: input.meals,
-        protein_target: input.target + 'g',
+        workouts_per_week: input.workouts,
+        trained_today: input.today,
         marketing_opt_in: $('plan-optin').checked ? 'Yes' : 'No'
       }).then(unlock);
     });
