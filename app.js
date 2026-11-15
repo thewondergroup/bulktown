@@ -25,6 +25,53 @@
 
   function $(id) { return document.getElementById(id); }
 
+  /* ---------- Motion ---------- */
+
+  var EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+  var SPRING = 'cubic-bezier(0.3, 1.5, 0.5, 1)';
+  var booted = false; // nothing animates while the page is first drawn
+
+  function reducedMotion() {
+    try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; }
+  }
+
+  // Animate only after the first draw, in browsers that can, for people who haven't asked for less motion.
+  function canAnimate(el) {
+    return booted && !!el && typeof el.animate === 'function' && !reducedMotion();
+  }
+
+  // A quick press-and-release bounce on the thing that was tapped.
+  function pop(el) {
+    if (canAnimate(el)) el.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }], { duration: 280, easing: 'ease-out' });
+  }
+
+  // Elements rise into place one after another.
+  function stagger(nodes, gap, start) {
+    Array.prototype.forEach.call(nodes, function (node, i) {
+      if (canAnimate(node)) {
+        node.animate([{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }],
+          { duration: 380, delay: (start || 0) + gap * i, easing: EASE, fill: 'backwards' });
+      }
+    });
+  }
+
+  // Count a number on the page from its current value to a new one.
+  function tween(el, to) {
+    if (!el) return;
+    var from = parseInt(el.textContent, 10);
+    if (el._frame) window.cancelAnimationFrame(el._frame);
+    if (!canAnimate(el) || isNaN(from) || from === to || !window.requestAnimationFrame) { el.textContent = to; return; }
+    var started = null;
+    var step = function (now) {
+      if (started === null) started = now;
+      var t = Math.min(1, (now - started) / 450);
+      var eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(from + (to - from) * eased);
+      el._frame = t < 1 ? window.requestAnimationFrame(step) : null;
+    };
+    el._frame = window.requestAnimationFrame(step);
+  }
+
   function esc(value) {
     return String(value).replace(/[&<>"']/g, function (ch) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
@@ -78,16 +125,36 @@
       tabs[j].setAttribute('aria-pressed', tabs[j].getAttribute('data-filter') === goal ? 'true' : 'false');
     }
 
-    $('goal-line').textContent = goal === 'bulk'
+    var line = goal === 'bulk'
       ? 'Bulking it is. The menu now shows the bigger plates with more carbs and calories.'
       : goal === 'cut'
         ? 'Cutting it is. The menu now shows the lighter plates that keep protein high.'
         : 'Tap one and the whole menu shapes itself around you.';
+    var goalLine = $('goal-line');
+    if (goalLine.textContent !== line) {
+      goalLine.textContent = line;
+      stagger([goalLine], 0, 0);
+    }
     $('menu-cta').textContent = goal === 'bulk' ? 'See the bulking menu' : goal === 'cut' ? 'See the cutting menu' : 'See the full menu';
 
     var dish = dishById(HERO_DISH[goal]) || MENU[0];
     var label = $('hero-label');
-    if (!dish || !label) return;
+    if (!dish || !label || dish.id === heroDishId) return;
+    heroDishId = dish.id;
+    if (!canAnimate(label)) { fillLabel(label, dish); return; }
+    // Swap the example label like a card being dealt: the old one drops away, the new one lands.
+    var out = label.animate([{ opacity: 1, transform: 'rotate(-2deg)' }, { opacity: 0, transform: 'rotate(-8deg) translateY(24px) scale(0.94)' }],
+      { duration: 160, easing: 'ease-in' });
+    out.onfinish = function () {
+      fillLabel(label, dishById(heroDishId) || dish);
+      label.animate([{ opacity: 0, transform: 'rotate(4deg) translateY(-28px) scale(1.05)' }, { opacity: 1, transform: 'rotate(-2deg)' }],
+        { duration: 400, easing: SPRING });
+    };
+  }
+
+  var heroDishId = null;
+
+  function fillLabel(label, dish) {
     label.setAttribute('aria-label', 'Example Bulktown label: ' + dish.name + ', ' + (dish.goal === 'bulk' ? 'Bulk' : 'Cut') + ', ' +
       dish.kcal + ' calories, ' + dish.p + ' grams protein, ' + dish.c + ' grams carbs, ' + dish.f + ' grams fat');
     label.innerHTML =
@@ -103,44 +170,124 @@
 
   /* ---------- Menu ---------- */
 
-  function renderMenu() {
+  // How a meal's calories split between protein, carbs and fat, in whole percent.
+  function share(m) {
+    var pk = m.p * 4, ck = m.c * 4, fk = m.f * 9, total = pk + ck + fk || 1;
+    var p = Math.round((pk / total) * 100);
+    var c = Math.round((ck / total) * 100);
+    return { p: p, c: c, f: 100 - p - c };
+  }
+
+  function shareLabel(s) {
+    return 'Share of calories: protein ' + s.p + '%, carbs ' + s.c + '%, fat ' + s.f + '%';
+  }
+
+  function cardHtml(d) {
+    var m = macros(d);
+    var s = share(m);
+    var id = esc(d.id);
+    var addon = m.extra
+      ? '<button type="button" class="addon" data-addon="' + id + '" aria-pressed="' + (m.on ? 'true' : 'false') + '">' +
+          '<span data-k="addon">' + esc(m.on ? m.extra.on : m.extra.off) + '</span><span>+' + m.extra.p + 'g protein</span></button>'
+      : '';
+    return '<article class="dish" data-id="' + id + '" data-goal="' + esc(d.goal) + '">' +
+      '<img class="dish-photo" src="' + esc(d.img) + '" alt="' + esc(d.alt || '') + '" loading="lazy" style="object-position: ' + esc(d.pos || 'center') + '">' +
+      '<div class="dish-body">' +
+        '<div class="dish-top">' + tag(d.goal) + (d.price ? '<span class="dish-price">' + esc(d.price) + '</span>' : '') + '</div>' +
+        '<div><h3>' + esc(d.name) + '</h3><p class="dish-desc">' + esc(d.desc) + '</p></div>' +
+        '<div class="dish-kcal"><strong data-k="kcal">' + m.kcal + '</strong> kcal</div>' +
+        '<div class="macro-bar" role="img" aria-label="' + shareLabel(s) + '">' +
+          '<div class="p" style="width:' + s.p + '%"></div><div class="c" style="width:' + s.c + '%"></div><div class="f" style="width:' + s.f + '%"></div>' +
+        '</div>' +
+        '<dl class="macros">' +
+          '<div class="p"><dt>Protein</dt><dd><span data-k="p">' + m.p + '</span>g</dd></div>' +
+          '<div class="c"><dt>Carbs</dt><dd><span data-k="c">' + m.c + '</span>g</dd></div>' +
+          '<div class="f"><dt>Fat</dt><dd><span data-k="f">' + m.f + '</span>g</dd></div>' +
+        '</dl>' +
+        addon +
+      '</div></article>';
+  }
+
+  // Every meal is drawn once. Filtering shows and hides cards; it never redraws them.
+  function buildMenu() {
+    $('menu-grid').innerHTML = MENU.map(cardHtml).join('');
+    applyFilter(false);
+  }
+
+  // Switching a protein add-on: the numbers count to their new values and the bar slides.
+  function updateCard(id) {
+    var d = dishById(id);
+    var card = document.querySelector('.dish[data-id="' + id + '"]');
+    if (!d || !card) return;
+    var m = macros(d);
+    var s = share(m);
+    ['kcal', 'p', 'c', 'f'].forEach(function (k) { tween(card.querySelector('[data-k="' + k + '"]'), m[k]); });
+    var bar = card.querySelector('.macro-bar');
+    bar.setAttribute('aria-label', shareLabel(s));
+    bar.querySelector('.p').style.width = s.p + '%';
+    bar.querySelector('.c').style.width = s.c + '%';
+    bar.querySelector('.f').style.width = s.f + '%';
+    var button = card.querySelector('.addon');
+    if (button) {
+      button.setAttribute('aria-pressed', m.on ? 'true' : 'false');
+      button.querySelector('[data-k="addon"]').textContent = m.on ? m.extra.on : m.extra.off;
+    }
+  }
+
+  var filterRun = 0;
+
+  // Show the meals for the current goal. When animated: cards that no longer fit
+  // fade out, the ones that stay glide to their new places, and new ones rise in.
+  function applyFilter(animated) {
     var goal = state.goal;
-    var shown = MENU.filter(function (d) { return goal === 'all' || d.goal === goal; });
+    var grid = $('menu-grid');
+    var cards = Array.prototype.slice.call(grid.children).filter(function (c) { return c.classList && c.classList.contains('dish'); });
+    var fits = function (c) { return state.goal === 'all' || c.getAttribute('data-goal') === state.goal; };
+    var count = cards.filter(fits).length;
 
     $('menu-summary').textContent = goal === 'all'
-      ? 'Showing all ' + shown.length + ' meals.'
-      : 'Showing ' + shown.length + ' ' + (goal === 'bulk' ? 'bulking' : 'cutting') + ' meals.';
+      ? 'Showing all ' + count + ' meals.'
+      : 'Showing ' + count + ' ' + (goal === 'bulk' ? 'bulking' : 'cutting') + ' meals.';
 
-    $('menu-grid').innerHTML = shown.map(function (d) {
-      var m = macros(d);
-      var pk = m.p * 4, ck = m.c * 4, fk = m.f * 9, total = pk + ck + fk || 1;
-      var pPct = Math.round((pk / total) * 100);
-      var cPct = Math.round((ck / total) * 100);
-      var fPct = 100 - pPct - cPct;
-      var id = esc(d.id);
+    if (!animated || !canAnimate(grid)) {
+      cards.forEach(function (c) { c.hidden = !fits(c); });
+      return;
+    }
 
-      var addon = m.extra
-        ? '<button type="button" class="addon" data-addon="' + id + '" data-key="addon-' + id + '" aria-pressed="' + (m.on ? 'true' : 'false') + '">' +
-            '<span>' + esc(m.on ? m.extra.on : m.extra.off) + '</span><span>+' + m.extra.p + 'g protein</span></button>'
-        : '';
+    var run = ++filterRun;
+    var before = [];
+    cards.forEach(function (c) { if (!c.hidden) before.push({ card: c, box: c.getBoundingClientRect() }); });
+    var leaving = before.filter(function (b) { return !fits(b.card); });
 
-      return '<article class="dish">' +
-        '<img class="dish-photo" src="' + esc(d.img) + '" alt="' + esc(d.alt || '') + '" loading="lazy" style="object-position: ' + esc(d.pos || 'center') + '">' +
-        '<div class="dish-body">' +
-          '<div class="dish-top">' + tag(d.goal) + (d.price ? '<span class="dish-price">' + esc(d.price) + '</span>' : '') + '</div>' +
-          '<div><h3>' + esc(d.name) + '</h3><p class="dish-desc">' + esc(d.desc) + '</p></div>' +
-          '<div class="dish-kcal"><strong>' + m.kcal + '</strong> kcal</div>' +
-          '<div class="macro-bar" role="img" aria-label="Share of calories: protein ' + pPct + '%, carbs ' + cPct + '%, fat ' + fPct + '%">' +
-            '<div class="p" style="width:' + pPct + '%"></div><div class="c" style="width:' + cPct + '%"></div><div class="f" style="width:' + fPct + '%"></div>' +
-          '</div>' +
-          '<dl class="macros">' +
-            '<div class="p"><dt>Protein</dt><dd>' + m.p + 'g</dd></div>' +
-            '<div class="c"><dt>Carbs</dt><dd>' + m.c + 'g</dd></div>' +
-            '<div class="f"><dt>Fat</dt><dd>' + m.f + 'g</dd></div>' +
-          '</dl>' +
-          addon +
-        '</div></article>';
-    }).join('');
+    var settle = function () {
+      if (run !== filterRun) return; // a newer tap has taken over
+      cards.forEach(function (c) { c.hidden = !fits(c); });
+      var entering = 0;
+      cards.forEach(function (c) {
+        if (c.hidden) return;
+        var was = null;
+        for (var i = 0; i < before.length; i++) { if (before[i].card === c) was = before[i].box; }
+        if (was) {
+          var now = c.getBoundingClientRect();
+          var dx = was.left - now.left, dy = was.top - now.top;
+          if (dx || dy) c.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }], { duration: 460, easing: EASE });
+        } else {
+          c.animate([{ opacity: 0, transform: 'translateY(28px) scale(0.96)' }, { opacity: 1, transform: 'none' }],
+            { duration: 420, delay: 70 * entering + 60, easing: EASE, fill: 'backwards' });
+          entering++;
+        }
+      });
+    };
+
+    if (!leaving.length) { settle(); return; }
+    var left = leaving.length;
+    leaving.forEach(function (b) {
+      var out = b.card.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(0.92)' }], { duration: 190, easing: 'ease-in', fill: 'forwards' });
+      out.onfinish = function () {
+        out.cancel(); // the card is hidden next, so drop the held end state
+        if (--left === 0) settle();
+      };
+    });
   }
 
   /* ---------- Meal plan: three questions, then the answer ---------- */
@@ -149,7 +296,7 @@
   var LOCK = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 
   // step 1 = goal, 2 = workouts a week, 3 = today's session, 4 = the answer
-  var plan = { step: 1, goal: '', workouts: 0, today: '', unlocked: false, sentFor: '' };
+  var plan = { step: 1, goal: '', workouts: 0, today: '', unlocked: false, sentFor: '', busy: false };
 
   // Which of the next seven days are training days (T) or rest days (R),
   // starting today, for 1 to 7 workouts a week.
@@ -210,8 +357,10 @@
     });
   }
 
-  function planTop(step) {
-    var bars = [1, 2, 3].map(function (n) { return '<span' + (n <= step ? ' class="on"' : '') + '></span>'; }).join('');
+  function planTop(step, grow) {
+    var bars = [1, 2, 3].map(function (n) {
+      return '<span' + (n <= step ? ' class="on' + (grow && n === step ? ' fill' : '') + '"' : '') + '></span>';
+    }).join('');
     return '<div class="plan-top">' +
       '<p class="plan-progress"><span class="plan-bars" aria-hidden="true">' + bars + '</span>STEP ' + step + ' OF 3</p>' +
       (step > 1 ? '<button type="button" class="plan-back" data-plan-back>Back</button>' : '') +
@@ -220,14 +369,14 @@
 
   function pressed(on) { return on ? 'true' : 'false'; }
 
-  function renderPlan(moveFocus) {
+  function renderPlan(moveFocus, grow) {
     var stage = $('plan-stage');
     if (!stage) return;
     var html = '';
 
     if (plan.step === 1) {
       var goal = plan.goal || (state.goal !== 'all' ? state.goal : '');
-      html = planTop(1) +
+      html = planTop(1, grow) +
         '<h3 class="plan-q" id="plan-q" tabindex="-1">WHAT\'S YOUR GOAL?</h3>' +
         '<div class="choices choices--2">' +
           '<button type="button" class="choice choice--bulk" data-plan-goal="bulk" aria-pressed="' + pressed(goal === 'bulk') + '">' + arrow('up', 40, 2.5) +
@@ -236,7 +385,7 @@
             '<span class="choice-title">CUTTING</span><span class="choice-sub">Get lean and defined</span></button>' +
         '</div>';
     } else if (plan.step === 2) {
-      html = planTop(2) +
+      html = planTop(2, grow) +
         '<h3 class="plan-q" id="plan-q" tabindex="-1">HOW MANY WORKOUTS A WEEK?</h3>' +
         '<p class="plan-hint">Gym, runs, classes. It all counts.</p>' +
         '<div class="choices choices--7">' + [1, 2, 3, 4, 5, 6, 7].map(function (n) {
@@ -244,7 +393,7 @@
             '" aria-label="' + n + (n === 1 ? ' workout' : ' workouts') + ' a week"><span class="choice-title">' + n + '</span></button>';
         }).join('') + '</div>';
     } else if (plan.step === 3) {
-      html = planTop(3) +
+      html = planTop(3, grow) +
         '<h3 class="plan-q" id="plan-q" tabindex="-1">WHAT DID YOU TRAIN TODAY?</h3>' +
         '<div class="choices choices--5">' + TODAY_CHOICES.map(function (c) {
           return '<button type="button" class="choice" data-plan-today="' + c.id + '" aria-pressed="' + pressed(plan.today === c.id) + '">' +
@@ -254,11 +403,52 @@
       html = renderAnswer();
     }
 
-    stage.innerHTML = html;
+    stage.innerHTML = '<div class="plan-view">' + html + '</div>';
     if (moveFocus) {
       var heading = $('plan-q');
       if (heading) heading.focus();
     }
+  }
+
+  // Slide the current step out and the next one in (direction 1 = forward, -1 = back),
+  // while the card eases to its new height.
+  function movePlan(direction, moveFocus) {
+    var stage = $('plan-stage');
+    var view = stage && stage.firstElementChild;
+    if (!view || !canAnimate(stage)) { plan.busy = false; renderPlan(moveFocus); return; }
+    plan.busy = true;
+    var from = stage.offsetHeight;
+    var shift = 56 * direction;
+    var out = view.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(' + (-shift) + 'px)' }],
+      { duration: 180, easing: 'ease-in', fill: 'forwards' });
+    out.onfinish = function () {
+      renderPlan(moveFocus, direction > 0);
+      settlePlan(stage, from);
+      var next = stage.firstElementChild;
+      next.animate([{ opacity: 0, transform: 'translateX(' + shift + 'px)' }, { opacity: 1, transform: 'none' }], { duration: 360, easing: EASE });
+      stagger(next.querySelectorAll('.choice, .today, .week'), 55, 120);
+      plan.busy = false;
+    };
+  }
+
+  // Ease the plan card from its old height to its new one.
+  function settlePlan(stage, from) {
+    var to = stage.offsetHeight;
+    if (from === to || !canAnimate(stage)) return;
+    stage.style.overflow = 'hidden';
+    var grow = stage.animate([{ height: from + 'px' }, { height: to + 'px' }], { duration: 360, easing: EASE });
+    grow.onfinish = grow.oncancel = function () { stage.style.overflow = ''; };
+  }
+
+  // Show the tapped answer as picked for a beat, then move to the next step.
+  function choose(el, step) {
+    var others = el.parentNode.querySelectorAll('.choice');
+    for (var i = 0; i < others.length; i++) others[i].setAttribute('aria-pressed', others[i] === el ? 'true' : 'false');
+    plan.step = step;
+    if (!canAnimate(el)) { renderPlan(true); return; }
+    plan.busy = true;
+    pop(el);
+    window.setTimeout(function () { movePlan(1, true); }, 200);
   }
 
   function renderAnswer() {
@@ -349,7 +539,12 @@
     }
     var unlock = function () {
       plan.unlocked = true;
+      var stage = $('plan-stage');
+      var from = stage.offsetHeight;
       renderPlan(true);
+      // The week fills in row by row.
+      settlePlan(stage, from);
+      stagger(stage.querySelectorAll('.week-list li, .plan-actions, .plan-foot'), 60, 0);
     };
     // The hidden "company" box is only ever filled by bots, and the same email is never sent twice.
     if ($('plan-company').value || plan.sentFor === value) { unlock(); return; }
@@ -374,17 +569,12 @@
 
   /* ---------- Page ---------- */
 
-  function render(focusKey) {
+  function render() {
     renderGoal();
-    renderMenu();
+    applyFilter(true);
     // The first question highlights the goal picked at the top of the page.
-    if (plan.step === 1) renderPlan();
+    if (plan.step === 1 && !plan.busy) renderPlan();
     save();
-    // Re-drawing replaces the button that was just pressed, so put focus back on its replacement.
-    if (focusKey) {
-      var next = document.querySelector('[data-key="' + focusKey + '"]');
-      if (next) next.focus();
-    }
   }
 
   document.addEventListener('click', function (event) {
@@ -392,34 +582,27 @@
     if (!el) return;
 
     // Meal plan steps
-    if (el.hasAttribute('data-plan-goal')) {
-      plan.goal = el.getAttribute('data-plan-goal');
-      state.goal = plan.goal; // one goal across the whole page
-      plan.step = 2;
-      renderGoal(); renderMenu(); save();
-      renderPlan(true);
-      return;
-    }
-    if (el.hasAttribute('data-plan-workouts')) {
-      plan.workouts = Number(el.getAttribute('data-plan-workouts'));
-      plan.step = 3;
-      renderPlan(true);
-      return;
-    }
-    if (el.hasAttribute('data-plan-today')) {
-      plan.today = el.getAttribute('data-plan-today');
-      plan.step = 4;
-      renderPlan(true);
-      return;
-    }
-    if (el.hasAttribute('data-plan-back')) {
-      plan.step = Math.max(1, plan.step - 1);
-      renderPlan(true);
-      return;
-    }
-    if (el.hasAttribute('data-plan-restart')) {
-      plan.step = 1;
-      renderPlan(true);
+    if (el.hasAttribute('data-plan-goal') || el.hasAttribute('data-plan-workouts') || el.hasAttribute('data-plan-today') ||
+        el.hasAttribute('data-plan-back') || el.hasAttribute('data-plan-restart')) {
+      if (plan.busy) return; // mid-transition
+      if (el.hasAttribute('data-plan-goal')) {
+        plan.goal = el.getAttribute('data-plan-goal');
+        state.goal = plan.goal; // one goal across the whole page
+        renderGoal(); applyFilter(true); save();
+        choose(el, 2);
+      } else if (el.hasAttribute('data-plan-workouts')) {
+        plan.workouts = Number(el.getAttribute('data-plan-workouts'));
+        choose(el, 3);
+      } else if (el.hasAttribute('data-plan-today')) {
+        plan.today = el.getAttribute('data-plan-today');
+        choose(el, 4);
+      } else if (el.hasAttribute('data-plan-back')) {
+        plan.step = Math.max(1, plan.step - 1);
+        movePlan(-1, true);
+      } else {
+        plan.step = 1;
+        movePlan(-1, true);
+      }
       return;
     }
     if (el.hasAttribute('data-print')) {
@@ -428,19 +611,21 @@
     }
 
     // Goal picker, menu filter and protein add-ons
-    var key = el.getAttribute('data-key');
     if (el.hasAttribute('data-goal')) {
       var goal = el.getAttribute('data-goal');
       state.goal = state.goal === goal ? 'all' : goal;
+      render();
+      pop(el);
     } else if (el.hasAttribute('data-filter')) {
       state.goal = el.getAttribute('data-filter');
+      render();
+      pop(el);
     } else if (el.hasAttribute('data-addon')) {
       var addonId = el.getAttribute('data-addon');
       state.addons[addonId] = !state.addons[addonId];
-    } else {
-      return;
+      updateCard(addonId);
+      save();
     }
-    render(key);
   });
 
   // Respect "reduce motion": hold the background video on its poster frame.
@@ -451,6 +636,8 @@
     }
   } catch (e) { /* leave the video as it is */ }
 
-  render();
+  renderGoal();
+  buildMenu();
   renderPlan();
+  booted = true;
 })();

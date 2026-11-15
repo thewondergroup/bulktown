@@ -19,6 +19,10 @@ It is a plain static site: HTML, CSS and JavaScript with no build step. Open `in
 
 Edit `menu.js`. Each dish has its name, description, calories, protein, carbs, fat, photo and add-on. The comment at the top of the file explains each field. Add a `price` to a dish and it shows on the card.
 
+## Animation
+
+Taps animate: the menu filter fades out meals that no longer fit and slides the rest into place, the example label at the top swaps like a dealt card, add-on numbers count up, and the meal plan slides between steps. The moves are in `app.js` (the Motion section); hover and press effects are at the bottom of `styles.css`. Everything switches off for visitors whose device is set to reduce motion.
+
 ## Meal plan sign-ups
 
 The "You trained. Now eat this." section is a three-step quiz, one question per screen:
