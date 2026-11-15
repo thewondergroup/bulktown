@@ -290,84 +290,125 @@
     });
   }
 
-  /* ---------- Meal plan: three questions, then the answer ---------- */
+  /* ---------- Meal plan: four questions, then the answer ---------- */
 
   var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   var LOCK = '<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+  var QUESTIONS = 4;
 
-  // step 1 = goal, 2 = workouts a week, 3 = today's session, 4 = the answer
-  var plan = { step: 1, goal: '', workouts: 0, today: '', unlocked: false, sentFor: '', busy: false };
+  // step 1 = goal, 2 = kind of training, 3 = sessions a week, 4 = today's session, 5 = the answer
+  var plan = { step: 1, goal: '', training: '', sessions: 0, today: '', unlocked: false, sentFor: '', busy: false };
 
   // Which of the next seven days are training days (T) or rest days (R),
-  // starting today, for 1 to 7 workouts a week.
+  // starting today, for 1 to 7 sessions a week.
   var WEEK_SHAPES = { 1: 'TRRRRRR', 2: 'TRRTRRR', 3: 'TRTRTRR', 4: 'TTRTTRR', 5: 'TTTRTTR', 6: 'TTTTTTR', 7: 'TTTTTTT' };
 
-  // What each kind of day asks for. `score` ranks the meals for that day (highest wins).
-  var SESSIONS = {
-    legs: { label: 'Legs day', chip: 'Legs today', head: 'YOU TRAINED LEGS. NOW EAT THIS.', score: function (d) { return d.c; }, why: 'Legs is the biggest session going, so refuel with carbs.' },
-    upper: { label: 'Upper body day', chip: 'Upper body today', head: 'YOU TRAINED UPPER BODY. NOW EAT THIS.', score: function (d) { return d.p; }, why: 'Upper body day is about repair, so protein comes first.' },
-    full: { label: 'Full-body day', chip: 'Full body today', head: 'YOU TRAINED FULL BODY. NOW EAT THIS.', score: function (d) { return d.c; }, why: 'A full-body session uses everything, so refuel with carbs.' },
-    cardio: { label: 'Cardio day', chip: 'Cardio today', head: 'YOU DID CARDIO. NOW EAT THIS.', score: function (d) { return d.c; }, why: 'Cardio runs your energy down, so top your carbs back up.' },
-    rest: { label: 'Rest day', chip: 'Rest day today', head: 'IT\'S A REST DAY. EAT THIS.', score: function (d) { return d.p - d.c / 2; }, why: 'Rest day, so go lower on carbs and keep the protein up.' },
-    train: { label: 'Training day', score: function (d) { return d.p + d.c / 2; }, why: 'Training day, so a solid mix of carbs and protein.' }
+  // What a day's meal should lead with. Each one ranks the meals (highest score wins).
+  var LEADS = {
+    carbs: function (d) { return d.c; },                 // refuel after the big, draining sessions
+    protein: function (d) { return d.p; },               // repair after strength work
+    mix: function (d) { return d.p + d.c / 2; },         // a balanced training day
+    fuel: function (d) { return d.c + d.p / 2; },        // a carb-leaning training day
+    light: function (d) { return d.p - d.c / 2; }        // rest and easy days: fewer carbs, protein up
   };
 
-  // The tiles on the "what did you train today" step.
-  var TODAY_CHOICES = [
-    { id: 'legs', title: 'LEGS', sub: 'Squats, deadlifts, lunges' },
-    { id: 'upper', title: 'UPPER BODY', sub: 'Push, pull, arms' },
-    { id: 'full', title: 'FULL BODY', sub: 'A bit of everything' },
-    { id: 'cardio', title: 'CARDIO', sub: 'Run, bike, class' },
-    { id: 'rest', title: 'REST DAY', sub: 'Nothing today' }
-  ];
+  // Every session someone can say they did today.
+  //   lead  = what the meal leads with (see LEADS)
+  //   extra = whether to add the meal's protein add-on
+  var SESSIONS = {
+    legs: { title: 'LEGS', sub: 'Squats, deadlifts, lunges', label: 'Legs day', chip: 'Legs today', head: 'YOU TRAINED LEGS. NOW EAT THIS.', lead: 'carbs', extra: true, why: 'Legs is the biggest session going, so refuel with carbs.' },
+    upper: { title: 'UPPER BODY', sub: 'Push, pull, arms', label: 'Upper body day', chip: 'Upper body today', head: 'YOU TRAINED UPPER BODY. NOW EAT THIS.', lead: 'protein', extra: true, why: 'Upper body day is about repair, so protein comes first.' },
+    full: { title: 'FULL BODY', sub: 'A bit of everything', label: 'Full-body day', chip: 'Full body today', head: 'YOU TRAINED FULL BODY. NOW EAT THIS.', lead: 'carbs', extra: true, why: 'A full-body session uses everything, so refuel with carbs.' },
+
+    easy: { title: 'EASY RUN', sub: 'Steady and comfortable', label: 'Easy run day', chip: 'Easy run today', head: 'YOU DID AN EASY RUN. NOW EAT THIS.', lead: 'mix', extra: true, why: 'An easy run wants a steady mix of carbs and protein.' },
+    long: { title: 'LONG RUN', sub: 'An hour or more', label: 'Long run day', chip: 'Long run today', head: 'YOU DID A LONG RUN. NOW EAT THIS.', lead: 'carbs', extra: true, why: 'A long run empties the tank, so carbs come first.' },
+    speed: { title: 'SPEED SESSION', sub: 'Intervals, hills, tempo', label: 'Speed day', chip: 'Speed session today', head: 'YOU DID A SPEED SESSION. NOW EAT THIS.', lead: 'carbs', extra: true, why: 'Hard efforts burn through carbs fast, so top them back up.' },
+
+    practice: { title: 'TRAINING', sub: 'Drills and practice', label: 'Training day', chip: 'Training today', head: 'YOU TRAINED. NOW EAT THIS.', lead: 'mix', extra: true, why: 'Training day, so a solid mix of carbs and protein.' },
+    match: { title: 'MATCH DAY', sub: 'Game or competition', label: 'Match day', chip: 'Match today', head: 'IT WAS MATCH DAY. NOW EAT THIS.', lead: 'carbs', extra: true, why: 'Match day takes the most out of you, so carbs come first.' },
+
+    hiit: { title: 'HIIT', sub: 'Hard and fast', label: 'HIIT day', chip: 'HIIT today', head: 'YOU DID HIIT. NOW EAT THIS.', lead: 'carbs', extra: true, why: 'HIIT burns through carbs fast, so top them back up.' },
+    strength: { title: 'STRENGTH CLASS', sub: 'Weights and circuits', label: 'Strength day', chip: 'Strength class today', head: 'YOU DID A STRENGTH CLASS. NOW EAT THIS.', lead: 'protein', extra: true, why: 'Strength work is about repair, so protein comes first.' },
+    slow: { title: 'YOGA OR PILATES', sub: 'Slow and controlled', label: 'Light day', chip: 'Yoga or Pilates today', head: 'YOU KEPT IT LIGHT. NOW EAT THIS.', lead: 'light', extra: false, why: 'A lighter session, so go easy on carbs and keep the protein up.' },
+
+    weights: { title: 'WEIGHTS', sub: 'Lifting and strength work', label: 'Weights day', chip: 'Weights today', head: 'YOU LIFTED. NOW EAT THIS.', lead: 'protein', extra: true, why: 'Lifting is about repair, so protein comes first.' },
+    cardio: { title: 'CARDIO', sub: 'Run, ride, swim', label: 'Cardio day', chip: 'Cardio today', head: 'YOU DID CARDIO. NOW EAT THIS.', lead: 'carbs', extra: true, why: 'Cardio runs your energy down, so top your carbs back up.' },
+    sport: { title: 'SPORT', sub: 'Match or practice', label: 'Sport day', chip: 'Sport today', head: 'YOU PLAYED. NOW EAT THIS.', lead: 'carbs', extra: true, why: 'Sport is stop-start and hard on the legs, so refuel with carbs.' },
+    session: { title: 'A CLASS', sub: 'HIIT, spin, circuits', label: 'Class day', chip: 'Class today', head: 'YOU DID A CLASS. NOW EAT THIS.', lead: 'fuel', extra: true, why: 'A hard class burns through carbs, so top them back up.' },
+
+    rest: { title: 'REST DAY', sub: 'Nothing today', label: 'Rest day', chip: 'Rest day today', head: 'IT\'S A REST DAY. EAT THIS.', lead: 'light', extra: false, why: 'Rest day, so go lower on carbs and keep the protein up.' }
+  };
+
+  // The kinds of training someone can pick, the sessions offered for "today",
+  // and what an ordinary training day later in the week looks like for them.
+  var TRAINING = {
+    weights: { title: 'WEIGHTS', sub: 'Lifting and strength work', chip: 'Weights', today: ['legs', 'upper', 'full', 'rest'],
+      next: { label: 'Gym day', lead: 'mix', why: 'Gym day, so protein to rebuild and carbs to fuel it.' } },
+    running: { title: 'RUNNING', sub: 'Runs, rides and swims', chip: 'Running', today: ['easy', 'long', 'speed', 'rest'],
+      next: { label: 'Run day', lead: 'fuel', why: 'Run day, so carbs first with protein to recover.' } },
+    sport: { title: 'SPORT', sub: 'Football, rugby, tennis, boxing', chip: 'Sport', today: ['practice', 'match', 'rest'],
+      next: { label: 'Training day', lead: 'mix', why: 'Training day, so a solid mix of carbs and protein.' } },
+    classes: { title: 'CLASSES', sub: 'HIIT, CrossFit, spin, yoga', chip: 'Classes', today: ['hiit', 'strength', 'slow', 'rest'],
+      next: { label: 'Class day', lead: 'fuel', why: 'Class day, so carbs to keep up with protein to recover.' } },
+    mix: { title: 'A MIX', sub: 'A bit of everything', chip: 'A mix', today: ['weights', 'cardio', 'sport', 'session', 'rest'],
+      next: { label: 'Training day', lead: 'mix', why: 'Training day, so a solid mix of carbs and protein.' } }
+  };
+  var TRAINING_ORDER = ['weights', 'running', 'sport', 'classes', 'mix'];
 
   // Seven days starting today. Today's meal answers today's session; the days
-  // after are training or rest days spread to match the workouts a week.
-  // The same meal is never suggested two days running, and training days
-  // come with the meal's protein add-on.
-  function buildPlan(goal, workouts, today) {
+  // after are training or rest days spread to match the sessions a week, with
+  // training days shaped by the kind of training. The same meal is never
+  // suggested two days running.
+  function buildPlan(goal, training, sessions, today) {
     var pool = MENU.filter(function (d) { return d.goal === goal; });
-    if (!pool.length) return [];
-    var shape = WEEK_SHAPES[workouts] || WEEK_SHAPES[4];
-    var types = [today];
+    var kind = TRAINING[training];
+    if (!pool.length || !kind || !SESSIONS[today]) return [];
+    var shape = WEEK_SHAPES[sessions] || WEEK_SHAPES[4];
+    var days = [SESSIONS[today]];
     for (var i = 1; i < 7; i++) {
-      // If today is a rest day, the week's workouts start tomorrow.
+      // If today is a rest day, the week's sessions start tomorrow.
       var slot = today === 'rest' ? shape.charAt(i - 1) : shape.charAt(i);
-      types.push(slot === 'T' ? 'train' : 'rest');
+      days.push(slot === 'T' ? { label: kind.next.label, lead: kind.next.lead, why: kind.next.why, extra: true } : SESSIONS.rest);
     }
     var todayIndex = new Date().getDay();
     var previous = null;
-    return types.map(function (type, n) {
-      var session = SESSIONS[type];
+    return days.map(function (day, n) {
+      var score = LEADS[day.lead];
       var choices = pool.filter(function (d) { return pool.length === 1 || d !== previous; });
-      var dish = choices.reduce(function (best, d) { return session.score(d) > session.score(best) ? d : best; });
+      var dish = choices.reduce(function (best, d) { return score(d) > score(best) ? d : best; });
       previous = dish;
-      var extra = type !== 'rest' ? ADDONS[dish.addon] : null;
+      var extra = day.extra ? ADDONS[dish.addon] : null;
       var weekday = WEEKDAYS[(todayIndex + n) % 7];
       return {
         when: n === 0 ? 'Today · ' + weekday : n === 1 ? 'Tomorrow · ' + weekday : weekday,
-        label: session.label,
-        why: session.why,
+        label: day.label,
+        why: day.why,
         dish: dish,
         extra: extra || null,
         kcal: dish.kcal + (extra ? extra.kcal : 0),
         p: dish.p + (extra ? extra.p : 0),
-        training: type !== 'rest'
+        training: day !== SESSIONS.rest
       };
     });
   }
 
   function planTop(step, grow) {
-    var bars = [1, 2, 3].map(function (n) {
-      return '<span' + (n <= step ? ' class="on' + (grow && n === step ? ' fill' : '') + '"' : '') + '></span>';
-    }).join('');
+    var bars = '';
+    for (var n = 1; n <= QUESTIONS; n++) {
+      bars += '<span' + (n <= step ? ' class="on' + (grow && n === step ? ' fill' : '') + '"' : '') + '></span>';
+    }
     return '<div class="plan-top">' +
-      '<p class="plan-progress"><span class="plan-bars" aria-hidden="true">' + bars + '</span>STEP ' + step + ' OF 3</p>' +
+      '<p class="plan-progress"><span class="plan-bars" aria-hidden="true">' + bars + '</span>STEP ' + step + ' OF ' + QUESTIONS + '</p>' +
       (step > 1 ? '<button type="button" class="plan-back" data-plan-back>Back</button>' : '') +
       '</div>';
   }
 
   function pressed(on) { return on ? 'true' : 'false'; }
+
+  function tile(attr, value, item, on) {
+    return '<button type="button" class="choice" ' + attr + '="' + value + '" aria-pressed="' + pressed(on) + '">' +
+      '<span class="choice-title">' + item.title + '</span><span class="choice-sub">' + item.sub + '</span></button>';
+  }
 
   function renderPlan(moveFocus, grow) {
     var stage = $('plan-stage');
@@ -386,18 +427,24 @@
         '</div>';
     } else if (plan.step === 2) {
       html = planTop(2, grow) +
-        '<h3 class="plan-q" id="plan-q" tabindex="-1">HOW MANY WORKOUTS A WEEK?</h3>' +
-        '<p class="plan-hint">Gym, runs, classes. It all counts.</p>' +
-        '<div class="choices choices--7">' + [1, 2, 3, 4, 5, 6, 7].map(function (n) {
-          return '<button type="button" class="choice choice--num" data-plan-workouts="' + n + '" aria-pressed="' + pressed(plan.workouts === n) +
-            '" aria-label="' + n + (n === 1 ? ' workout' : ' workouts') + ' a week"><span class="choice-title">' + n + '</span></button>';
+        '<h3 class="plan-q" id="plan-q" tabindex="-1">HOW DO YOU TRAIN?</h3>' +
+        '<p class="plan-hint">Pick the one you do most.</p>' +
+        '<div class="choices choices--5">' + TRAINING_ORDER.map(function (id) {
+          return tile('data-plan-training', id, TRAINING[id], plan.training === id);
         }).join('') + '</div>';
     } else if (plan.step === 3) {
       html = planTop(3, grow) +
-        '<h3 class="plan-q" id="plan-q" tabindex="-1">WHAT DID YOU TRAIN TODAY?</h3>' +
-        '<div class="choices choices--5">' + TODAY_CHOICES.map(function (c) {
-          return '<button type="button" class="choice" data-plan-today="' + c.id + '" aria-pressed="' + pressed(plan.today === c.id) + '">' +
-            '<span class="choice-title">' + c.title + '</span><span class="choice-sub">' + c.sub + '</span></button>';
+        '<h3 class="plan-q" id="plan-q" tabindex="-1">HOW MANY SESSIONS A WEEK?</h3>' +
+        '<p class="plan-hint">Gym, runs, matches, classes. It all counts.</p>' +
+        '<div class="choices choices--7">' + [1, 2, 3, 4, 5, 6, 7].map(function (n) {
+          return '<button type="button" class="choice choice--num" data-plan-sessions="' + n + '" aria-pressed="' + pressed(plan.sessions === n) +
+            '" aria-label="' + n + (n === 1 ? ' session' : ' sessions') + ' a week"><span class="choice-title">' + n + '</span></button>';
+        }).join('') + '</div>';
+    } else if (plan.step === 4) {
+      html = planTop(4, grow) +
+        '<h3 class="plan-q" id="plan-q" tabindex="-1">WHAT DID YOU DO TODAY?</h3>' +
+        '<div class="choices choices--5">' + TRAINING[plan.training].today.map(function (id) {
+          return tile('data-plan-today', id, SESSIONS[id], plan.today === id);
         }).join('') + '</div>';
     } else {
       html = renderAnswer();
@@ -452,7 +499,7 @@
   }
 
   function renderAnswer() {
-    var days = buildPlan(plan.goal, plan.workouts, plan.today);
+    var days = buildPlan(plan.goal, plan.training, plan.sessions, plan.today);
     if (!days.length) return '<p>No meals on the menu for that goal yet.</p>';
     var today = days[0];
     var session = SESSIONS[plan.today];
@@ -460,7 +507,8 @@
 
     var answers = '<ul class="plan-answers">' +
       '<li>' + (plan.goal === 'bulk' ? 'Bulking' : 'Cutting') + '</li>' +
-      '<li>' + plan.workouts + (plan.workouts === 1 ? ' workout' : ' workouts') + ' a week</li>' +
+      '<li>' + TRAINING[plan.training].chip + '</li>' +
+      '<li>' + plan.sessions + (plan.sessions === 1 ? ' session' : ' sessions') + ' a week</li>' +
       '<li>' + session.chip + '</li></ul>';
 
     var todayCard = '<div class="today">' +
@@ -555,8 +603,9 @@
     sendSignup({
       email: value,
       goal: plan.goal,
-      workouts_per_week: plan.workouts,
-      trained_today: plan.today,
+      training: plan.training,
+      sessions_per_week: plan.sessions,
+      did_today: plan.today,
       marketing_opt_in: $('plan-optin').checked ? 'Yes' : 'No'
     }).then(unlock);
   });
@@ -582,20 +631,25 @@
     if (!el) return;
 
     // Meal plan steps
-    if (el.hasAttribute('data-plan-goal') || el.hasAttribute('data-plan-workouts') || el.hasAttribute('data-plan-today') ||
-        el.hasAttribute('data-plan-back') || el.hasAttribute('data-plan-restart')) {
+    if (el.hasAttribute('data-plan-goal') || el.hasAttribute('data-plan-training') || el.hasAttribute('data-plan-sessions') ||
+        el.hasAttribute('data-plan-today') || el.hasAttribute('data-plan-back') || el.hasAttribute('data-plan-restart')) {
       if (plan.busy) return; // mid-transition
       if (el.hasAttribute('data-plan-goal')) {
         plan.goal = el.getAttribute('data-plan-goal');
         state.goal = plan.goal; // one goal across the whole page
         renderGoal(); applyFilter(true); save();
         choose(el, 2);
-      } else if (el.hasAttribute('data-plan-workouts')) {
-        plan.workouts = Number(el.getAttribute('data-plan-workouts'));
+      } else if (el.hasAttribute('data-plan-training')) {
+        var training = el.getAttribute('data-plan-training');
+        if (training !== plan.training) plan.today = ''; // today's options depend on the kind of training
+        plan.training = training;
         choose(el, 3);
+      } else if (el.hasAttribute('data-plan-sessions')) {
+        plan.sessions = Number(el.getAttribute('data-plan-sessions'));
+        choose(el, 4);
       } else if (el.hasAttribute('data-plan-today')) {
         plan.today = el.getAttribute('data-plan-today');
-        choose(el, 4);
+        choose(el, 5);
       } else if (el.hasAttribute('data-plan-back')) {
         plan.step = Math.max(1, plan.step - 1);
         movePlan(-1, true);

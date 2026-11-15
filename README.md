@@ -25,18 +25,21 @@ Taps animate: the menu filter fades out meals that no longer fit and slides the 
 
 ## Meal plan sign-ups
 
-The "You trained. Now eat this." section is a three-step quiz, one question per screen:
+The "You trained. Now eat this." section is a four-step quiz, one question per screen:
 
 1. What's your goal? (bulking or cutting)
-2. How many workouts a week? (1 to 7)
-3. What did you train today? (legs, upper body, full body, cardio or rest day)
+2. How do you train? (weights, running, sport, classes or a mix)
+3. How many sessions a week? (1 to 7)
+4. What did you do today? The options depend on the answer to question 2. Lifters get legs, upper body or full body. Runners get easy run, long run or speed session. Sport gets training or match day. Classes get HIIT, strength class, or yoga or Pilates. A mix gets weights, cardio, sport or a class. Everyone can pick rest day.
 
 It then shows today's meal with the reason for it. The next six days are listed as training or rest days and stay locked until the visitor gives an email.
 
-How meals are matched (the `SESSIONS` list in `app.js`): legs, full-body and cardio days get the meal with the most carbs, upper body days the most protein, rest days the meal that is lowest in carbs for its protein. Training days include the meal's protein add-on. The same meal is never suggested two days running.
+How meals are matched: every session in the `SESSIONS` list in `app.js` has a `lead`, which decides how the meals are ranked for that day (the `LEADS` list). Big, draining sessions (legs, long runs, match day, HIIT) lead with carbs. Strength work leads with protein. Easier training days get a balance. Rest and light days go lower on carbs with protein kept up. Later training days in the week follow the kind of training picked in question 2. Training days include the meal's protein add-on, and the same meal is never suggested two days running.
+
+To add or change a session, edit `SESSIONS` and the `today` list for that kind of training in `TRAINING`.
 
 - Sign-ups are sent through [Web3Forms](https://web3forms.com). Paste the access key into `config.js`. **Until a key is set, no emails are saved.**
-- Each sign-up arrives with the email, goal, workouts a week, what they trained today, and whether they ticked the marketing box.
+- Each sign-up arrives with the email, goal, kind of training, sessions a week, what they did today, and whether they ticked the marketing box.
 - Only email people marketing if `marketing_opt_in` is `Yes`. The box is unticked by default on purpose: UK rules need an active opt-in for marketing email.
 - Link the privacy policy in the form (currently `#`).
 

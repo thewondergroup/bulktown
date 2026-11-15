@@ -190,6 +190,8 @@ h2 { font-family: var(--display); font-weight: 400; font-size: clamp(44px, 5vw, 
 .choice:hover { background: var(--paper); }
 .choice-title { font-family: var(--display); font-size: 40px; line-height: 1; letter-spacing: 0.02em; }
 .choice-sub { font-size: 15px; line-height: 1.4; color: var(--grey); }
+.choices--5 .choice { padding: 20px; }
+.choices--5 .choice-title { font-size: 34px; }
 .choice--bulk, .choice--bulk:hover { background: var(--bulk); }
 .choice--bulk .choice-sub { color: var(--ink); }
 .choice--cut, .choice--cut:hover { background: var(--cut); color: #FFFFFF; }
