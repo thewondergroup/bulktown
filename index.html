@@ -24,12 +24,18 @@
 <header class="site-header">
   <nav class="nav wrap" aria-label="Main">
     <a class="logo" href="#top">BULK<span>TOWN</span></a>
-    <div class="nav-links">
+    <div class="nav-links" id="nav-links">
       <a href="#menu">Menu</a>
       <a href="#plan">Meal plan</a>
       <a href="#how">How it works</a>
-      <a href="#visit">Visit</a>
-      <a class="btn btn--accent btn--small" href="#order">Order now</a>
+      <a href="#visit">Find us</a>
+      <a class="btn btn--accent nav-order" href="#order">Order now</a>
+    </div>
+    <div class="nav-actions">
+      <a class="btn btn--accent btn--small" href="#order">Order</a>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Open menu">
+        <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+      </button>
     </div>
   </nav>
 </header>
@@ -78,6 +84,40 @@
 <div class="band" aria-hidden="true">
   <p>HIGH PROTEIN · MACROS ON EVERY MEAL · BULK OR CUT · EAT IN OR TAKE AWAY · HIGH PROTEIN · MACROS ON EVERY MEAL</p>
 </div>
+
+<section class="menu" id="menu">
+  <div class="wrap menu-inner">
+    <div class="menu-head">
+      <div class="section-head">
+        <p class="eyebrow">THE MENU</p>
+        <h2>WHAT ARE YOU<br>TRAINING FOR?</h2>
+      </div>
+      <div class="tabs" role="group" aria-label="Filter dishes by goal">
+        <button type="button" class="tab" data-filter="all" aria-pressed="true">All meals</button>
+        <button type="button" class="tab tab--bulk" data-filter="bulk" aria-pressed="false">Bulking</button>
+        <button type="button" class="tab tab--cut" data-filter="cut" aria-pressed="false">Cutting</button>
+      </div>
+    </div>
+    <p class="menu-summary"><span id="menu-summary" aria-live="polite">Showing all meals.</span> Macros are per serving and update when you add extra protein.</p>
+
+    <div class="menu-grid" id="menu-grid">
+      <noscript><p>Turn on JavaScript to see the menu.</p></noscript>
+    </div>
+  </div>
+</section>
+
+<section class="plan" id="plan">
+  <div class="wrap plan-inner">
+    <div class="section-head plan-head">
+      <p class="eyebrow">FREE MEAL PLAN</p>
+      <h2>YOU TRAINED.<br>NOW EAT THIS.</h2>
+      <p class="plan-lede">Four quick questions about how you train. We'll tell you what to eat today, then line up the rest of your week.</p>
+    </div>
+    <div class="plan-stage" id="plan-stage">
+      <noscript><p>Turn on JavaScript to build your meal plan.</p></noscript>
+    </div>
+  </div>
+</section>
 
 <section class="how wrap" id="how">
   <div class="how-copy">
@@ -134,40 +174,6 @@
       <li>High protein</li>
       <li>Lean and light</li>
     </ul>
-  </div>
-</section>
-
-<section class="menu" id="menu">
-  <div class="wrap menu-inner">
-    <div class="menu-head">
-      <div class="section-head">
-        <p class="eyebrow">THE MENU</p>
-        <h2>WHAT ARE YOU<br>TRAINING FOR?</h2>
-      </div>
-      <div class="tabs" role="group" aria-label="Filter dishes by goal">
-        <button type="button" class="tab" data-filter="all" aria-pressed="true">All meals</button>
-        <button type="button" class="tab tab--bulk" data-filter="bulk" aria-pressed="false">Bulking</button>
-        <button type="button" class="tab tab--cut" data-filter="cut" aria-pressed="false">Cutting</button>
-      </div>
-    </div>
-    <p class="menu-summary"><span id="menu-summary" aria-live="polite">Showing all meals.</span> Macros are per serving and update when you add extra protein.</p>
-
-    <div class="menu-grid" id="menu-grid">
-      <noscript><p>Turn on JavaScript to see the menu.</p></noscript>
-    </div>
-  </div>
-</section>
-
-<section class="plan" id="plan">
-  <div class="wrap plan-inner">
-    <div class="section-head plan-head">
-      <p class="eyebrow">FREE MEAL PLAN</p>
-      <h2>YOU TRAINED.<br>NOW EAT THIS.</h2>
-      <p class="plan-lede">Four quick questions about how you train. We'll tell you what to eat today, then line up the rest of your week.</p>
-    </div>
-    <div class="plan-stage" id="plan-stage">
-      <noscript><p>Turn on JavaScript to build your meal plan.</p></noscript>
-    </div>
   </div>
 </section>
 

@@ -255,8 +255,13 @@
     }
 
     var run = ++filterRun;
+    // Positions are measured against the grid, so the page scrolling mid-move doesn't throw them off.
+    var place = function (c) {
+      var g = grid.getBoundingClientRect(), r = c.getBoundingClientRect();
+      return { left: r.left - g.left, top: r.top - g.top };
+    };
     var before = [];
-    cards.forEach(function (c) { if (!c.hidden) before.push({ card: c, box: c.getBoundingClientRect() }); });
+    cards.forEach(function (c) { if (!c.hidden) before.push({ card: c, box: place(c) }); });
     var leaving = before.filter(function (b) { return !fits(b.card); });
 
     var settle = function () {
@@ -268,7 +273,7 @@
         var was = null;
         for (var i = 0; i < before.length; i++) { if (before[i].card === c) was = before[i].box; }
         if (was) {
-          var now = c.getBoundingClientRect();
+          var now = place(c);
           var dx = was.left - now.left, dy = was.top - now.top;
           if (dx || dy) c.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }], { duration: 460, easing: EASE });
         } else {
@@ -670,6 +675,12 @@
       state.goal = state.goal === goal ? 'all' : goal;
       render();
       pop(el);
+      // Picking a goal at the top goes straight to its meals.
+      if (state.goal !== 'all' && el.classList.contains('goal-btn')) {
+        window.setTimeout(function () {
+          $('menu').scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+        }, 260);
+      }
     } else if (el.hasAttribute('data-filter')) {
       state.goal = el.getAttribute('data-filter');
       render();
@@ -681,6 +692,38 @@
       save();
     }
   });
+
+  /* ---------- Phone menu ---------- */
+
+  var navToggle = $('nav-toggle');
+  var navLinks = $('nav-links');
+
+  function setNav(open) {
+    if (!navToggle) return;
+    document.body.classList.toggle('nav-open', open);
+    navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    navToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+    // While the menu covers the page, keep keyboard and screen-reader focus out of what's behind it.
+    var behind = document.querySelectorAll('main, .site-footer');
+    for (var i = 0; i < behind.length; i++) behind[i].inert = open;
+  }
+
+  function navIsOpen() { return document.body.classList.contains('nav-open'); }
+
+  if (navToggle && navLinks) {
+    navToggle.addEventListener('click', function () { setNav(!navIsOpen()); });
+    // Picking a link closes the menu, then the page scrolls to that section.
+    navLinks.addEventListener('click', function (event) {
+      if (event.target.closest && event.target.closest('a')) setNav(false);
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && navIsOpen()) { setNav(false); navToggle.focus(); }
+    });
+    // Turning the phone or widening the window past the phone layout closes it.
+    window.addEventListener('resize', function () {
+      if (navIsOpen() && window.innerWidth > 820) setNav(false);
+    });
+  }
 
   // Respect "reduce motion": hold the background video on its poster frame.
   try {
